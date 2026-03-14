@@ -141,11 +141,32 @@ Handle the response:
 1. For significant new files (utilities, hooks, services, components, config): create a reference memory with file_path and code_signature
 2. For trivial files (minor edits, formatting, comments): skip
 
-### Phase 4 — Register WIP
+### Phase 4 — Register Session State
 
-**MANDATORY if Main provided `wip` or if work is incomplete.**
+**ALWAYS create a session state memory.** This is how future sessions know what happened recently.
 
-Create a memory with:
+#### 4A — Completed work (MANDATORY for every task)
+
+```python
+memorize(memories=[{
+    "content": "Completed [task name]: [2-3 line summary of what was done, key files, key decisions]. Build: [PASS/FAIL].",
+    "type": "episodic",
+    "project": "{PROJECT}",
+    "tags": ["state", "completed", {area}],
+    "relations": [{
+        "target_id": "id-of-related-memory",  # link to relevant memories created in Phase 2
+        "relation_type": "relates_to",
+        "weight": 0.7
+    }]
+}])
+```
+
+These memories create a **chronological timeline** of the project. They surface via `remember(mode="recent")` and give the next session immediate context on "what happened last time".
+
+#### 4B — WIP (only if work is incomplete)
+
+If Main provided `wip` or work is not fully done:
+
 ```python
 memorize(memories=[{
     "content": "WIP: [What's pending]. Reached: [Where work stopped]. Next: [What to do next]. Blockers: [Any blockers or dependencies].",
@@ -160,8 +181,6 @@ memorize(memories=[{
 }])
 ```
 
-WIP memories are critical: they surface automatically in `remember(mode="recent")` at the start of the next session, ensuring continuity.
-
 **Before creating a new WIP memory**, check if an old WIP memory exists for the same area:
 ```
 remember(query="WIP [area keywords]", mode="quick", project="{PROJECT}")
@@ -169,6 +188,8 @@ remember(query="WIP [area keywords]", mode="quick", project="{PROJECT}")
 If found, either:
 - `update_memory(memory_id=..., content="updated WIP content")` if work continues
 - `update_memory(memory_id=..., is_deprecated=True)` if work is now complete
+
+Both completed and WIP memories are critical: they surface automatically in `remember(mode="recent")` at the start of the next session, ensuring continuity.
 
 ---
 
