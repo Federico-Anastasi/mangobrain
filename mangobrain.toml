@@ -1,0 +1,34 @@
+# MangoBrain Configuration
+# Copy this file and adjust values for your setup.
+# Environment variables override these values (prefixed with MANGOBRAIN_).
+
+[server]
+api_port = 3101                     # REST API + dashboard port
+
+[database]
+path = "data/mangobrain.db"         # Relative to mango-brain root
+
+[embedding]
+model = "auto"                      # "auto" = cuda->bge-large, cpu->bge-base
+device = "auto"                     # "auto" = cuda if available, else cpu
+# Explicit override examples:
+# model = "BAAI/bge-large-en-v1.5"  # 1024 dim, best quality, needs GPU
+# model = "BAAI/bge-base-en-v1.5"   # 768 dim, good quality, fast on CPU
+# device = "cuda"                    # Force GPU
+# device = "cpu"                     # Force CPU
+
+[retrieval]
+alpha = 0.3                         # Graph propagation factor (deep mode)
+dedup_threshold = 0.92              # Cosine similarity for deduplication
+deep_budget = 8000                  # Token budget for deep recall
+quick_budget = 2000                 # Token budget for quick recall
+session_quick_budget = 4000         # Per-session quick mode budget
+deep_max_results = 20               # Max memories returned (deep)
+quick_max_results = 6               # Max memories returned (quick)
+deep_threshold = 0.78               # Relevance threshold ratio (deep)
+quick_threshold = 0.85              # Relevance threshold ratio (quick)
+
+[decay]
+episodic = 0.01                     # Fast decay — events, bugs, sessions
+semantic = 0.002                    # Medium decay — knowledge, patterns
+procedural = 0.001                  # Slow decay — how-to, workflows
