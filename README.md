@@ -208,55 +208,41 @@ A visual control center with 6 pages:
 - **Python** 3.11+
 - **Claude Code** (Anthropic CLI)
 
-### Step 1 — Install
+### Option A — Let Claude do everything
+
+Open Claude Code in your project and paste this:
+
+```
+Install MangoBrain for this project.
+Run: pip install mango-brain
+Then run: mango-brain install
+Then run: mango-brain serve --api (in background)
+Then tell me to open http://localhost:3101 and to restart Claude Code.
+After restart, I should run /init.
+```
+
+### Option B — Do it yourself
 
 ```bash
 pip install mango-brain
-```
-
-### Step 2 — Set up your project
-
-In your project directory:
-
-```bash
 cd /path/to/your/project
 mango-brain install
-```
-
-This will:
-- Detect your GPU and install the right PyTorch (CUDA or CPU)
-- Install skills, agents, rules, and prompts into `.claude/`
-- Configure `.mcp.json` for Claude Code
-- Update `CLAUDE.md` with MangoBrain documentation
-- Register the project in the MangoBrain database
-
-### Step 3 — Open the Dashboard
-
-```bash
 mango-brain serve --api
 ```
 
-Go to **http://localhost:3101** — your control center for tracking initialization progress, browsing memories, and monitoring health.
+### What `mango-brain install` does
 
-### Step 4 — Restart Claude Code
+- Detects your GPU and installs the right PyTorch (CUDA or CPU)
+- Installs skills, agents, rules, and prompts into `.claude/`
+- Configures `.mcp.json` for Claude Code
+- Updates `CLAUDE.md` with MangoBrain documentation
+- Registers the project in the MangoBrain database
 
-**Close and reopen Claude Code** in your project to load the MangoBrain MCP server.
+### After install
 
-### Step 5 — Initialize Memory
-
-In the new Claude Code session, run:
-
-```
-/init
-```
-
-### Step 3 — Initialize Memory
-
-In the new session, run:
-
-```
-/init
-```
+1. Open **http://localhost:3101** — the dashboard tracks your progress live
+2. **Restart Claude Code** to load the MCP server
+3. Run `/init` — the wizard guides you through memory initialization
 
 The `/init` wizard guides you through **14 steps across 7 phases**:
 
