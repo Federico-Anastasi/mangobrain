@@ -242,35 +242,9 @@ Install MangoBrain for this project.
 
 Claude handles everything — just approve the commands when prompted.
 
-### Step 2 — Restart Claude Code
+### Step 2 — Open the Dashboard
 
-After Step 1 completes, Claude will tell you to restart. **Close and reopen Claude Code** in your project. This loads the MangoBrain MCP server.
-
-### Step 3 — Initialize Memory
-
-In the new session, run:
-
-```
-/init
-```
-
-The `/init` wizard guides you through **14 steps across 5 phases**:
-
-| Phase | What it does | Sessions |
-|-------|-------------|----------|
-| **1. Doc Base** | Extracts memories from CLAUDE.md, rules, and documentation | 1 |
-| **2. Code Base** | Parallel agents scan the codebase for patterns and architecture | 1-2 |
-| **3. Event Base** | Imports existing knowledge (task lists, project docs) — optional | 1 |
-| **4. Chat Base** | Extracts knowledge from past Claude Code sessions (JSONL) | 1-3 |
-| **5. Elaborate** | Builds the memory graph: edges, contradictions, abstractions | 1-2 |
-
-> **Note:** Each phase runs in a separate Claude Code session (for fresh context). The wizard tells you exactly when to restart and what to do next. Progress is tracked automatically — if you stop mid-way, `/init` picks up where you left off.
-
-After initialization, your daily workflow is simply: `/discuss` → `/task` → repeat.
-
-### Step 4 — Dashboard (optional but recommended)
-
-Open a separate terminal:
+Open a separate terminal and start the dashboard **before anything else**:
 
 ```bash
 # Windows
@@ -280,7 +254,37 @@ Open a separate terminal:
 .mangobrain/.venv/bin/mango-brain serve --api
 ```
 
-Dashboard opens at **http://localhost:3101** — monitor health, browse memories, track setup progress, and view the memory graph.
+Go to **http://localhost:3101**. You'll see the Setup page with all steps at "pending". This is your control center — it updates live as you progress through initialization, shows the guide, and tracks memory health.
+
+### Step 3 — Restart Claude Code
+
+After Step 1 completes, Claude will tell you to restart. **Close and reopen Claude Code** in your project. This loads the MangoBrain MCP server.
+
+### Step 4 — Initialize Memory
+
+In the new session, run:
+
+```
+/init
+```
+
+The `/init` wizard guides you through **14 steps across 7 phases**:
+
+| Phase | What it does | Sessions |
+|-------|-------------|----------|
+| **1. Doc Base** | Extracts memories from CLAUDE.md, rules, and documentation | 1 |
+| **2. Code Base** | Parallel agents scan the codebase for patterns and architecture | 1-2 |
+| **3. Event Base** | Imports existing knowledge (task lists, project docs) — optional | 1 |
+| **4. Chat Base** | Extracts knowledge from past Claude Code sessions (JSONL) | 1-3 |
+| **5. Elaborate** | Builds the memory graph: edges, contradictions, abstractions | 1-2 |
+| **6. Smoke Test** | 10-20 diverse queries to verify retrieval quality | 1 |
+| **7. Health Check** | Diagnoses gaps, runs targeted fixes, validates final state | 1 |
+
+> **Note:** Each phase runs in a separate Claude Code session (for fresh context). The wizard tells you exactly when to restart and what to do next. Progress is tracked automatically — if you stop mid-way, `/init` picks up where you left off. Watch the dashboard update in real-time as memories are created and connected.
+
+When the dashboard shows **"Memory Ready"**, initialization is complete.
+
+After that, your daily workflow is simply: `/discuss` → `/task` → repeat.
 
 ---
 
