@@ -182,20 +182,29 @@ def register_tools(
 
             # Create edges from relations
             for rel in mi.relations:
-                rel_emb = embedder.encode(rel.target_query)
-                if existing:
+                target_mem_id = None
+                if rel.target_id:
+                    # Direct ID — verify it exists
+                    target_mem = await db.get_memory(rel.target_id)
+                    if target_mem:
+                        target_mem_id = rel.target_id
+                if not target_mem_id and rel.target_query and existing:
+                    # Semantic search fallback
+                    rel_emb = embedder.encode(rel.target_query)
                     sims = Embedder.cosine_similarity(rel_emb, existing_embs)
                     best_idx = int(sims.argmax())
                     if sims[best_idx] > 0.5:
-                        edge = Edge(
-                            from_id=memory.id,
-                            to_id=existing[best_idx].id,
-                            weight=rel.weight,
-                            type=rel.relation_type,
-                            source=src,
-                        )
-                        await db.insert_edge(edge)
-                        edges_created += 1
+                        target_mem_id = existing[best_idx].id
+                if target_mem_id:
+                    edge = Edge(
+                        from_id=memory.id,
+                        to_id=target_mem_id,
+                        weight=rel.weight,
+                        type=rel.relation_type,
+                        source=src,
+                    )
+                    await db.insert_edge(edge)
+                    edges_created += 1
 
         return json.dumps({
             "created": created,

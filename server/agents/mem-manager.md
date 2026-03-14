@@ -68,6 +68,15 @@ For each significant unit of knowledge from the session, call `memorize()`.
 | Gotcha / non-obvious behavior | semantic | "gotcha", {area} | What can go wrong and how to avoid it |
 | Refactor | episodic | "refactor", {area} | What changed structurally and why |
 
+**What to memorize vs what to skip:**
+
+- **DO memorize**: architecture decisions (and WHY), gotchas, non-obvious behavior, custom patterns, conventions, important bugs with root cause
+- **DO memorize**: new rules/standards files — READ the file and extract the key conventions as procedural memories (don't just log "file was created")
+- **DON'T memorize**: boilerplate, standard library/framework usage, individual trivial components (e.g., don't create separate memories for each standard shadcn component — one inventory memory is enough)
+- **DON'T memorize**: things that are obvious from the code itself
+
+**When a rules/standards/conventions file is created or modified**: READ it with the Read tool, then extract the non-obvious rules as procedural memories. A coding-standards.md with 10 rules should produce 3-5 procedural memories for the rules that are project-specific or non-obvious, not just one "file was created" note.
+
 **Memory quality checklist (apply to EVERY memory before storing):**
 
 1. **English only** — all memory content in English
@@ -88,8 +97,9 @@ memorize(memories=[{
     "tags": ["tag1", "tag2"],   # 3-6 lowercase tags
     "file_path": "src/...",     # MANDATORY for code-related (relative to project root)
     "code_signature": "...",    # Encouraged: "ClassName.methodName", "useHookName", "export functionName"
-    "relations": [{             # Link to related memories
-        "target_query": "description to find the related memory",
+    "relations": [{             # Link to related memories (use ONE of target_id or target_query)
+        "target_id": "abc-123",         # PREFERRED: use if you have the ID from a prior remember() call
+        "target_query": "fallback search text",  # FALLBACK: semantic search if you don't have the ID
         "relation_type": "relates_to",  # relates_to | caused_by | depends_on | co_occurs | contradicts | supersedes
         "weight": 0.7
     }]

@@ -102,7 +102,8 @@ class SessionInfo(BaseModel):
 # ── Input Models (no auto-generated fields) ────────────────────────────────
 
 class Relation(BaseModel):
-    target_query: str
+    target_query: str = ""
+    target_id: str = ""
     relation_type: EdgeType = EdgeType.relates_to
     weight: float = 0.5
 
