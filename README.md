@@ -214,7 +214,9 @@ Open Claude Code in your project and paste this:
 
 ```
 Install MangoBrain for this project.
-Run: pip install mango-brain
+IMPORTANT: Use Python 3.11 or higher. Check available versions first (python --version,
+py -3.12 --version, python3.12 --version, etc.) and use the correct one for pip install.
+Run: pip install mango-brain  (using Python >= 3.11's pip)
 Then run: mango-brain install
 Then run: mango-brain serve --api (in background)
 Then tell me to open http://localhost:3101 and to restart Claude Code.
