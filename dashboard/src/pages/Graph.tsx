@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import GraphView from "../components/GraphView.tsx";
 import MemoryDialog from "../components/MemoryDialog.tsx";
-import ProjectSelector from "../components/ProjectSelector.tsx";
+import { useProject } from "../context/ProjectContext.tsx";
 import { useGraph } from "../hooks/useApi.ts";
 import { Search, GitFork, Database, Layers } from "lucide-react";
 
@@ -26,7 +26,7 @@ export default function Graph() {
   const [searchParams] = useSearchParams();
   const focusId = searchParams.get("focus");
 
-  const [project, setProject] = useState("");
+  const { project } = useProject();
   const [minWeight, setMinWeight] = useState(0);
   const [selectedId, setSelectedId] = useState<string | null>(focusId);
   const [searchQuery, setSearchQuery] = useState("");
@@ -108,7 +108,6 @@ export default function Graph() {
               className="w-20 accent-purple-500" />
             <span className="text-xs text-slate-300 w-8 font-mono">{minWeight.toFixed(2)}</span>
           </div>
-          <ProjectSelector value={project} onChange={setProject} />
         </div>
       </div>
 

@@ -1,12 +1,12 @@
 import { useState } from "react";
 import MemoryTable from "../components/MemoryTable.tsx";
 import MemoryDialog from "../components/MemoryDialog.tsx";
-import ProjectSelector from "../components/ProjectSelector.tsx";
+import { useProject } from "../context/ProjectContext.tsx";
 import { useMemories } from "../hooks/useApi.ts";
 import { Search, ChevronLeft, ChevronRight, Database, Eye, Layers, Filter } from "lucide-react";
 
 export default function Memories() {
-  const [project, setProject] = useState("");
+  const { project } = useProject();
   const [type, setType] = useState("");
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState("created");
@@ -66,7 +66,6 @@ export default function Memories() {
           <option value="episodic">Episodic</option>
           <option value="procedural">Procedural</option>
         </select>
-        <ProjectSelector value={project} onChange={(v) => { setProject(v); setOffset(0); }} />
         <select value={sort} onChange={(e) => setSort(e.target.value)}
           className="bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg px-3 py-2">
           <option value="created">Newest</option>

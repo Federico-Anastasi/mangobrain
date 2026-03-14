@@ -1,3 +1,4 @@
+import { useProject } from "../context/ProjectContext.tsx";
 import { useAdvancedStats, useElaborations, useDiagnose } from "../hooks/useApi.ts";
 import type { Prescription } from "../types/index.ts";
 import {
@@ -90,8 +91,9 @@ function StatCard({ label, value, sub, color = "text-white" }: { label: string; 
 }
 
 export default function Monitoring() {
-  const { data: adv, loading } = useAdvancedStats();
-  const { data: diag } = useDiagnose();
+  const { project } = useProject();
+  const { data: adv, loading } = useAdvancedStats(project || undefined);
+  const { data: diag } = useDiagnose(project || undefined);
   const { data: elabData } = useElaborations();
 
   if (loading || !adv) {

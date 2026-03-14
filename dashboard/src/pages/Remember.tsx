@@ -1,6 +1,6 @@
 import { useState, useCallback } from "react";
 import { Search, Zap, Clock, Layers, ChevronDown, ChevronRight, Tag, FileCode, Link2 } from "lucide-react";
-import ProjectSelector from "../components/ProjectSelector.tsx";
+import { useProject } from "../context/ProjectContext.tsx";
 
 const BASE_URL = "http://localhost:3101";
 
@@ -36,7 +36,7 @@ const modeConfig = {
 export default function Remember() {
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<"deep" | "quick" | "recent">("deep");
-  const [project, setProject] = useState<string | undefined>();
+  const { project } = useProject();
   const [results, setResults] = useState<RememberResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,6 +53,7 @@ export default function Remember() {
     try {
       const params = new URLSearchParams({ query: query.trim(), mode });
       if (project) params.set("project", project);
+      else params.delete("project");
       const res = await fetch(`${BASE_URL}/api/remember?${params}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data: RememberResponse = await res.json();
@@ -141,8 +142,6 @@ export default function Remember() {
               );
             })}
           </div>
-          <div className="w-px h-6 bg-slate-700" />
-          <ProjectSelector value={project ?? ""} onChange={(v) => setProject(v || undefined)} />
           <div className="ml-auto text-xs text-slate-500">
             {modeConfig[mode].desc}
           </div>

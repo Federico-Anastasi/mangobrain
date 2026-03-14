@@ -1,6 +1,5 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import ProjectSelector from "../components/ProjectSelector.tsx";
+import { useProject } from "../context/ProjectContext.tsx";
 import { useAdvancedStats, useElaborations, useSessions, useSetupAll } from "../hooks/useApi.ts";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
@@ -82,7 +81,7 @@ function SetupBanner() {
 }
 
 export default function Overview() {
-  const [project, setProject] = useState("");
+  const { project } = useProject();
   const { data: adv, loading } = useAdvancedStats(project || undefined);
   const { data: elabData } = useElaborations();
   const { data: sessionsData } = useSessions(project || undefined);
@@ -90,10 +89,6 @@ export default function Overview() {
   if (loading || !adv) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-white">Overview</h1>
-          <ProjectSelector value={project} onChange={setProject} />
-        </div>
         <div className="grid grid-cols-5 gap-3">{[...Array(5)].map((_, i) => <div key={i} className="h-24 bg-slate-800/50 rounded-xl animate-pulse" />)}</div>
         <div className="grid grid-cols-3 gap-4">{[...Array(3)].map((_, i) => <div key={i} className="h-64 bg-slate-800/50 rounded-xl animate-pulse" />)}</div>
       </div>
@@ -144,11 +139,6 @@ export default function Overview() {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-white">Overview</h1>
-        <ProjectSelector value={project} onChange={setProject} />
-      </div>
-
       {/* ─── Setup Status Banner ─── */}
       <SetupBanner />
 
