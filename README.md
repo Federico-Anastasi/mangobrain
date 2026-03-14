@@ -203,53 +203,84 @@ A visual control center with 6 pages:
 
 ## Quick Start
 
-### 1. Clone & Install
+### Requirements
 
-```bash
-git clone https://github.com/Federico-Anastasi/mangobrain.git
-cd mangobrain
+- **Python** 3.11+ and **Node.js** 18+
+- **Claude Code** (Anthropic CLI)
 
-python -m venv .venv
-# Windows
-.venv\Scripts\activate
-# Unix
-source .venv/bin/activate
+### Step 1 — Install
 
-pip install -e .
+Open Claude Code **inside your project** and paste this prompt:
+
+```
+Install MangoBrain for this project.
+
+1. Clone the repo:
+   git clone https://github.com/Federico-Anastasi/mangobrain.git .mangobrain
+
+2. Create a Python venv inside .mangobrain/.venv and install dependencies:
+   pip install -e .  (from the .mangobrain directory)
+
+3. Build the dashboard:
+   cd .mangobrain/dashboard && npm install && npm run build
+
+4. Run the init command using the venv's mango-brain binary:
+   mango-brain init --project {USE_THIS_PROJECT_FOLDER_NAME} --path {ABSOLUTE_PATH_TO_THIS_PROJECT}
+
+5. Add a "mango-brain" entry to .mcp.json at the project root:
+   - command: path to the python binary inside .mangobrain/.venv
+   - args: ["-m", "server"]
+   - cwd: ".mangobrain"
+   (Detect the OS and use the correct venv path: Scripts/python.exe on Windows, bin/python on Unix)
+
+6. Add .mangobrain/ to .gitignore
+
+7. When everything is done, tell me to CLOSE AND REOPEN Claude Code to load the
+   MangoBrain MCP server. After reopening, I should run /init to start memory
+   initialization.
 ```
 
-### 2. Build Dashboard
+Claude handles everything — just approve the commands when prompted.
 
-```bash
-cd dashboard && npm install && npm run build && cd ..
-```
+### Step 2 — Restart Claude Code
 
-### 3. Initialize Your Project
+After Step 1 completes, Claude will tell you to restart. **Close and reopen Claude Code** in your project. This loads the MangoBrain MCP server.
 
-```bash
-mango-brain init --project myproject --path /path/to/your/project
-```
+### Step 3 — Initialize Memory
 
-This copies skills, agents, and rules into your project's `.claude/` directory and sets up the MCP configuration.
-
-### 4. Start the Server
-
-```bash
-mango-brain serve --api    # API + Dashboard on http://localhost:3101
-```
-
-### 5. Begin Memory Initialization
-
-In Claude Code, inside your project:
+In the new session, run:
 
 ```
 /init
 ```
 
-The wizard guides you through 14 steps across 5 phases:
-documentation scan → codebase exploration → event import → chat extraction → graph elaboration.
+The `/init` wizard guides you through **14 steps across 5 phases**:
+
+| Phase | What it does | Sessions |
+|-------|-------------|----------|
+| **1. Doc Base** | Extracts memories from CLAUDE.md, rules, and documentation | 1 |
+| **2. Code Base** | Parallel agents scan the codebase for patterns and architecture | 1-2 |
+| **3. Event Base** | Imports existing knowledge (task lists, project docs) — optional | 1 |
+| **4. Chat Base** | Extracts knowledge from past Claude Code sessions (JSONL) | 1-3 |
+| **5. Elaborate** | Builds the memory graph: edges, contradictions, abstractions | 1-2 |
+
+> **Note:** Each phase runs in a separate Claude Code session (for fresh context). The wizard tells you exactly when to restart and what to do next. Progress is tracked automatically — if you stop mid-way, `/init` picks up where you left off.
 
 After initialization, your daily workflow is simply: `/discuss` → `/task` → repeat.
+
+### Step 4 — Dashboard (optional but recommended)
+
+Open a separate terminal:
+
+```bash
+# Windows
+.mangobrain\.venv\Scripts\mango-brain serve --api
+
+# Unix
+.mangobrain/.venv/bin/mango-brain serve --api
+```
+
+Dashboard opens at **http://localhost:3101** — monitor health, browse memories, track setup progress, and view the memory graph.
 
 ---
 
