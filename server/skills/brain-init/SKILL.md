@@ -1,4 +1,4 @@
-# /init — Memory Initialization for a Project
+# /brain-init — Memory Initialization for a Project
 
 Orchestrates the full memory initialization process for a new project in MangoBrain.
 
@@ -83,7 +83,7 @@ These steps have a `prompt_file` field in the setup_status response. The prompt 
 - If the user wants to do it now, proceed in the current session
 - If the user wants to defer, provide the command:
   ```
-  claude "/init {PROJECT} {PROJECT_PATH}"
+  claude "/brain-init{PROJECT} {PROJECT_PATH}"
   ```
   The skill will resume from where it left off.
 

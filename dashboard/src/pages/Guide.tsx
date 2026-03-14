@@ -154,7 +154,7 @@ export default function Guide() {
             { name: "/discuss", desc: "Plan + brainstorm with memory context. Spawns analyzer agents, generates task.md." },
             { name: "/task", desc: "Execute tasks. Full cycle: analyze, plan, execute, verify, close with mem-manager." },
             { name: "/memorize", desc: "End-of-session sync. Saves decisions and work to memory." },
-            { name: "/init", desc: "Initialize memory for a project. Guided multi-phase setup." },
+            { name: "/brain-init", desc: "Initialize memory for a project. Guided multi-phase setup." },
             { name: "/elaborate", desc: "Consolidate memory. Build graph connections, find contradictions." },
             { name: "/health-check", desc: "Diagnose + optimize memory health. Prescriptions and auto-fix." },
             { name: "/smoke-test", desc: "Test retrieval quality with diverse queries." },

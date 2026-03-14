@@ -220,7 +220,7 @@ Run: pip install mango-brain  (using Python >= 3.11's pip)
 Then run: mango-brain install
 Then run: mango-brain serve --api (in background)
 Then tell me to open http://localhost:3101 and to restart Claude Code.
-After restart, I should run /init.
+After restart, I should run /brain-init.
 ```
 
 ### Option B — Do it yourself
@@ -244,9 +244,9 @@ mango-brain serve --api
 
 1. Open **http://localhost:3101** — the dashboard tracks your progress live
 2. **Restart Claude Code** to load the MCP server
-3. Run `/init` — the wizard guides you through memory initialization
+3. Run `/brain-init` — the wizard guides you through memory initialization
 
-The `/init` wizard guides you through **14 steps across 7 phases**:
+The `/brain-init` wizard guides you through **14 steps across 7 phases**:
 
 | Phase | What it does | Sessions |
 |-------|-------------|----------|
@@ -258,7 +258,7 @@ The `/init` wizard guides you through **14 steps across 7 phases**:
 | **6. Smoke Test** | 10-20 diverse queries to verify retrieval quality | 1 |
 | **7. Health Check** | Diagnoses gaps, runs targeted fixes, validates final state | 1 |
 
-> **Note:** Each phase runs in a separate Claude Code session (for fresh context). The wizard tells you exactly when to restart and what to do next. Progress is tracked automatically — if you stop mid-way, `/init` picks up where you left off. Watch the dashboard update in real-time as memories are created and connected.
+> **Note:** Each phase runs in a separate Claude Code session (for fresh context). The wizard tells you exactly when to restart and what to do next. Progress is tracked automatically — if you stop mid-way, `/brain-init` picks up where you left off. Watch the dashboard update in real-time as memories are created and connected.
 
 When the dashboard shows **"Memory Ready"**, initialization is complete.
 
@@ -311,7 +311,7 @@ mango-brain dashboard                  # Open dashboard in browser
 mangobrain/
 ├── server/           # Python MCP server + REST API
 ├── dashboard/        # React 19 + Vite + Tailwind
-├── skills/           # 7 skills (/discuss, /task, /init, /memorize, /elaborate, /health-check, /smoke-test)
+├── skills/           # 7 skills (/discuss, /task, /brain-init, /memorize, /elaborate, /health-check, /smoke-test)
 ├── agents/           # 4 agent prompts (analyzer, executor, verifier, mem-manager)
 ├── rules/            # 2 auto-loaded rules (query strategy, workflow integration)
 ├── prompts/          # Init phase instructions + memory quality reference

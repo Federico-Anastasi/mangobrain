@@ -3,7 +3,7 @@
 Runs test queries against the memory system to verify retrieval quality, coverage, and relevance.
 
 ## When to use
-- After initialization (step 8 of /init)
+- After initialization (step 8 of /brain-init)
 - After major memory changes (bulk extraction, elaboration)
 - When retrieval feels off and you want to quantify it
 - When the user says "/smoke-test", "testa la memoria", "verifica retrieval", or similar
@@ -126,6 +126,6 @@ Report the verdict and specific recommendations.
 
 - This skill is non-destructive: it only reads, never writes
 - Query design matters: bad test queries give meaningless results. Use real terms from the project.
-- The skill is also used as steps 8 and 12 during /init
-- When used in /init step 12, compare results with step 8 to show improvement
+- The skill is also used as steps 8 and 12 during /brain-init
+- When used in /brain-init step 12, compare results with step 8 to show improvement
 - Keep the report concise but actionable — the user needs to know what to fix, not just what's broken

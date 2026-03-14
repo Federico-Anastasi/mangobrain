@@ -86,7 +86,7 @@ def cmd_init(args: argparse.Namespace) -> None:
             _patch_claude_md(project_path, project)
 
         print(f"\nOpen the dashboard to track progress: http://localhost:{API_PORT}")
-        print(f"In a Claude Code session in {project_path or 'the project'}, run: /init")
+        print(f"In a Claude Code session in {project_path or 'the project'}, run: /brain-init")
 
         await db.close()
 
@@ -193,7 +193,7 @@ def cmd_install(args: argparse.Namespace) -> None:
     print(f"  1. Start the dashboard:  mango-brain serve --api")
     print(f"     Then open http://localhost:{API_PORT}")
     print(f"  2. Restart Claude Code (to load MCP server)")
-    print(f"  3. Run /init in Claude Code")
+    print(f"  3. Run /brain-init in Claude Code")
     print()
 
 
@@ -396,7 +396,7 @@ MangoBrain provides persistent, associative memory and a complete development wo
 - `/discuss` — Brainstorm + memory-enhanced planning (INTAKE -> EXPLORE -> BRAINSTORM -> DOCUMENT)
 - `/task` — Task execution with memory (INTAKE -> ANALYZE -> PLAN -> EXECUTE -> VERIFY -> CLOSE)
 - `/memorize` — End-of-session memory sync for free sessions
-- `/init` — First-time memory initialization (guided setup)
+- `/brain-init` — First-time memory initialization (guided setup)
 - `/elaborate` — Periodic memory consolidation
 - `/health-check` — Memory health diagnosis and optimization
 - `/smoke-test` — Query verification
