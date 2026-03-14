@@ -9,7 +9,7 @@ from pathlib import Path
 
 from mcp.server.fastmcp import FastMCP
 
-from server.config import API_PORT, DB_PATH, EMBEDDING_DEVICE, EMBEDDING_MODEL, PROJECT_ROOT
+from server.config import API_PORT, DB_PATH, EMBEDDING_DEVICE, EMBEDDING_MODEL, PACKAGE_DIR
 from server.database import Database
 from server.embeddings import Embedder
 from server.graph import GraphManager
@@ -66,7 +66,7 @@ async def run_api_server() -> None:
     app.include_router(create_api_router(db))
 
     # Serve dashboard static files if the build exists
-    dashboard_dist = PROJECT_ROOT / "dashboard" / "dist"
+    dashboard_dist = PACKAGE_DIR / "dashboard_dist"
     if dashboard_dist.exists():
         # SPA fallback: serve index.html for non-API routes
         from fastapi.responses import FileResponse
@@ -124,7 +124,7 @@ async def run_all() -> None:
     )
     app.include_router(create_api_router(db))
 
-    dashboard_dist = PROJECT_ROOT / "dashboard" / "dist"
+    dashboard_dist = PACKAGE_DIR / "dashboard_dist"
     if dashboard_dist.exists():
         from fastapi.responses import FileResponse
 

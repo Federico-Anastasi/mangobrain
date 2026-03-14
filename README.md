@@ -205,56 +205,50 @@ A visual control center with 6 pages:
 
 ### Requirements
 
-- **Python** 3.11+ and **Node.js** 18+
+- **Python** 3.11+
 - **Claude Code** (Anthropic CLI)
 
 ### Step 1 — Install
 
-Open Claude Code **inside your project** and paste this prompt:
-
-```
-Install MangoBrain for this project.
-
-1. Clone the repo:
-   git clone https://github.com/Federico-Anastasi/mangobrain.git .mangobrain
-
-2. Create a Python venv inside .mangobrain/.venv using Python 3.11 or higher (IMPORTANT:
-   check which python versions are available and use one >= 3.11, NOT the default if it's older).
-   Then install PyTorch with GPU support if an NVIDIA GPU is available:
-   pip install torch --index-url https://download.pytorch.org/whl/cu124
-   Then install the rest: pip install -e .  (from the .mangobrain directory)
-
-3. Build the dashboard:
-   cd .mangobrain/dashboard && npm install && npm run build
-
-4. Run the init command using the venv's mango-brain binary:
-   mango-brain init --project {USE_THIS_PROJECT_FOLDER_NAME} --path {ABSOLUTE_PATH_TO_THIS_PROJECT}
-
-5. Add a "mango-brain" entry to .mcp.json at the project root:
-   - command: path to the python binary inside .mangobrain/.venv
-   - args: ["-m", "server"]
-   - cwd: ".mangobrain"
-   (Detect the OS and use the correct venv path: Scripts/python.exe on Windows, bin/python on Unix)
-
-6. Add .mangobrain/ to .gitignore
-
-7. Start the MangoBrain dashboard API server as a background process:
-   run "mango-brain serve --api" using the venv binary (in background, don't wait for it)
-   Then tell me to open http://localhost:3101 in the browser — this is the MangoBrain
-   dashboard where I can track initialization progress in real-time.
-
-8. When everything is done, tell me to CLOSE AND REOPEN Claude Code to load the
-   MangoBrain MCP server. After reopening, I should run /init to start memory
-   initialization.
+```bash
+pip install mango-brain
 ```
 
-Claude handles everything — just approve the commands when prompted.
+### Step 2 — Set up your project
 
-### Step 2 — Restart Claude Code
+In your project directory:
 
-After Step 1 completes, Claude will tell you to restart. **Close and reopen Claude Code** in your project. This loads the MangoBrain MCP server.
+```bash
+cd /path/to/your/project
+mango-brain install
+```
 
-The dashboard is already running at **http://localhost:3101** — open it to follow the initialization progress live.
+This will:
+- Detect your GPU and install the right PyTorch (CUDA or CPU)
+- Install skills, agents, rules, and prompts into `.claude/`
+- Configure `.mcp.json` for Claude Code
+- Update `CLAUDE.md` with MangoBrain documentation
+- Register the project in the MangoBrain database
+
+### Step 3 — Open the Dashboard
+
+```bash
+mango-brain serve --api
+```
+
+Go to **http://localhost:3101** — your control center for tracking initialization progress, browsing memories, and monitoring health.
+
+### Step 4 — Restart Claude Code
+
+**Close and reopen Claude Code** in your project to load the MangoBrain MCP server.
+
+### Step 5 — Initialize Memory
+
+In the new Claude Code session, run:
+
+```
+/init
+```
 
 ### Step 3 — Initialize Memory
 

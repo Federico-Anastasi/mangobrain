@@ -12,22 +12,52 @@ from dotenv import load_dotenv
 
 logger = logging.getLogger(__name__)
 
-# ── Locate project root ──────────────────────────────────────────────────────
+# ── Locate paths ─────────────────────────────────────────────────────────────
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+# Package directory: where server/*.py and bundled data files live
+PACKAGE_DIR = Path(__file__).resolve().parent
+
+# Legacy PROJECT_ROOT: repo root when running from a git clone / editable install
+PROJECT_ROOT = PACKAGE_DIR.parent
 
 # ── Load config layers: mangobrain.toml -> .env -> environment ────────────────
 
 def _load_toml() -> dict:
-    """Load mangobrain.toml if it exists."""
-    toml_path = PROJECT_ROOT / "mangobrain.toml"
-    if toml_path.exists():
-        with open(toml_path, "rb") as f:
+    """Load mangobrain.toml with fallback chain:
+    1. ./mangobrain.toml  (cwd — for dev/clone users)
+    2. PACKAGE_DIR / mangobrain.default.toml  (installed package fallback)
+    """
+    # 1. Current working directory (dev / clone)
+    cwd_toml = Path.cwd() / "mangobrain.toml"
+    if cwd_toml.exists():
+        with open(cwd_toml, "rb") as f:
+            logger.info("Config loaded from %s", cwd_toml)
+            return tomllib.load(f)
+    # 2. Repo root (editable install — legacy path)
+    repo_toml = PROJECT_ROOT / "mangobrain.toml"
+    if repo_toml.exists():
+        with open(repo_toml, "rb") as f:
+            logger.info("Config loaded from %s", repo_toml)
+            return tomllib.load(f)
+    # 3. Bundled default inside the package
+    default_toml = PACKAGE_DIR / "mangobrain.default.toml"
+    if default_toml.exists():
+        with open(default_toml, "rb") as f:
+            logger.info("Config loaded from %s (package default)", default_toml)
             return tomllib.load(f)
     return {}
 
 _toml = _load_toml()
-load_dotenv(PROJECT_ROOT / ".env")
+
+# .env: try cwd first, then repo root
+_env_cwd = Path.cwd() / ".env"
+_env_repo = PROJECT_ROOT / ".env"
+if _env_cwd.exists():
+    load_dotenv(_env_cwd)
+elif _env_repo.exists():
+    load_dotenv(_env_repo)
+else:
+    load_dotenv()  # still check environment
 
 
 def _get(section: str, key: str, default: str) -> str:
@@ -104,8 +134,16 @@ def _resolve_model(device: str) -> str:
 
 # ── Resolved config values ────────────────────────────────────────────────────
 
-# Paths
-DB_PATH = PROJECT_ROOT / _get("database", "path", "data/mangobrain.db")
+# Paths — resolve DB relative to repo root (dev) or cwd (pip install)
+_db_raw = Path(_get("database", "path", "data/mangobrain.db"))
+if _db_raw.is_absolute():
+    DB_PATH = _db_raw
+elif (PROJECT_ROOT / _db_raw).parent.exists():
+    # Dev / clone: resolve relative to repo root
+    DB_PATH = PROJECT_ROOT / _db_raw
+else:
+    # pip install: resolve relative to cwd
+    DB_PATH = Path.cwd() / _db_raw
 
 # Embedding
 EMBEDDING_DEVICE = _detect_device()

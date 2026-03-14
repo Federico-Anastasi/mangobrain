@@ -12,15 +12,16 @@ import sys
 import webbrowser
 from pathlib import Path
 
-from server.config import PROJECT_ROOT, API_PORT, DB_PATH, EMBEDDING_MODEL, EMBEDDING_DEVICE
+from server.config import PACKAGE_DIR, API_PORT, DB_PATH, EMBEDDING_MODEL, EMBEDDING_DEVICE
 
 logger = logging.getLogger(__name__)
 
-# ── Paths ─────────────────────────────────────────────────────────────────────
+# ── Paths (bundled inside the server package) ─────────────────────────────────
 
-SKILLS_SRC = PROJECT_ROOT / "skills"
-AGENTS_SRC = PROJECT_ROOT / "agents"
-RULES_SRC = PROJECT_ROOT / "rules"
+SKILLS_SRC = PACKAGE_DIR / "skills"
+AGENTS_SRC = PACKAGE_DIR / "agents"
+RULES_SRC = PACKAGE_DIR / "rules"
+PROMPTS_SRC = PACKAGE_DIR / "prompts"
 
 
 # ── Commands ──────────────────────────────────────────────────────────────────
@@ -93,21 +94,101 @@ def cmd_init(args: argparse.Namespace) -> None:
 
 
 def cmd_install(args: argparse.Namespace) -> None:
-    """Install MangoBrain skills/agents/rules into a project."""
-    project_path = Path(args.path).resolve()
+    """Full interactive install: detect hardware, install torch, set up project."""
+    project_path = Path(args.path).resolve() if args.path else Path.cwd()
+    project_name = args.project or project_path.name
 
     if not project_path.exists():
         print(f"Error: path does not exist: {project_path}")
         sys.exit(1)
 
-    installed = _install_files(project_path)
-    print(f"Installed {len(installed)} files:")
-    for f in installed:
-        print(f"  {f}")
+    print("=" * 60)
+    print("  MangoBrain — Installation")
+    print("=" * 60)
 
-    if args.patch_claude_md:
-        _patch_claude_md(project_path, args.project or project_path.name)
-        print("Updated CLAUDE.md with MangoBrain section")
+    # ── Step 1: Detect hardware ──
+    print("\n[1/5] Detecting hardware...")
+    has_gpu = False
+    gpu_name = ""
+    try:
+        result = subprocess.run(
+            ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],
+            capture_output=True, text=True, timeout=5,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            has_gpu = True
+            gpu_name = result.stdout.strip().split("\n")[0]
+            print(f"  GPU detected: {gpu_name}")
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+
+    if not has_gpu:
+        print("  No NVIDIA GPU detected — will use CPU embeddings")
+
+    # ── Step 2: Install PyTorch ──
+    print("\n[2/5] Setting up PyTorch...")
+    try:
+        import torch
+        cuda_ok = torch.cuda.is_available()
+        print(f"  PyTorch already installed: {torch.__version__} ({'CUDA' if cuda_ok else 'CPU'})")
+        if has_gpu and not cuda_ok:
+            print("  WARNING: GPU detected but PyTorch is CPU-only.")
+            print("  To upgrade: pip install torch --index-url https://download.pytorch.org/whl/cu124")
+    except ImportError:
+        print("  PyTorch not found — installing...")
+        if has_gpu:
+            print(f"  Installing PyTorch with CUDA support for {gpu_name}...")
+            subprocess.run(
+                [sys.executable, "-m", "pip", "install", "torch",
+                 "--index-url", "https://download.pytorch.org/whl/cu124"],
+                check=True,
+            )
+            print("  PyTorch CUDA installed.")
+        else:
+            print("  Installing PyTorch (CPU)...")
+            subprocess.run(
+                [sys.executable, "-m", "pip", "install", "torch"],
+                check=True,
+            )
+            print("  PyTorch CPU installed.")
+
+    # ── Step 3: Install files ──
+    print("\n[3/5] Installing skills, agents, rules, and prompts...")
+    installed = _install_files(project_path)
+    print(f"  {len(installed)} files installed into {project_path / '.claude'}")
+
+    # ── Step 4: Configure MCP ──
+    print("\n[4/5] Configuring MCP server...")
+    _setup_mcp_json(project_path)
+
+    # ── Step 5: Patch CLAUDE.md ──
+    print("\n[5/5] Updating CLAUDE.md...")
+    _patch_claude_md(project_path, project_name)
+
+    # ── Step 6: Init project in DB ──
+    async def _init_db():
+        from server.database import Database
+        db = await Database.create(DB_PATH)
+        summary = await db.get_setup_summary(project_name)
+        if not summary.get("initialized"):
+            count = await db.init_setup_progress(project_name)
+            print(f"\n  Project '{project_name}' registered with {count} setup steps.")
+        else:
+            print(f"\n  Project '{project_name}' already registered ({summary['completed']}/{summary['total_steps']} steps).")
+        await db.close()
+
+    asyncio.run(_init_db())
+
+    # ── Done ──
+    print("\n" + "=" * 60)
+    print("  Installation complete!")
+    print("=" * 60)
+    print(f"\n  Next steps:")
+    print(f"  1. Start the dashboard:  mango-brain serve --api")
+    print(f"     Then open http://localhost:{API_PORT}")
+    print(f"  2. Restart Claude Code (to load MCP server)")
+    print(f"  3. Run /init in Claude Code")
+    print()
 
 
 def cmd_doctor(args: argparse.Namespace) -> None:
@@ -251,7 +332,41 @@ def _install_files(project_path: Path) -> list[str]:
             shutil.copy2(rule_file, dest)
             installed.append(f"rules/{rule_file.name}")
 
+    # Prompts
+    if PROMPTS_SRC.exists():
+        prompts_dest = claude_dir / "prompts" / "mangobrain"
+        for md_file in PROMPTS_SRC.rglob("*.md"):
+            rel = md_file.relative_to(PROMPTS_SRC)
+            dest = prompts_dest / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(md_file, dest)
+            installed.append(f"prompts/mangobrain/{rel}")
+
     return installed
+
+
+def _setup_mcp_json(project_path: Path) -> None:
+    """Create or update .mcp.json with MangoBrain server entry."""
+    mcp_json = project_path / ".mcp.json"
+
+    if mcp_json.exists():
+        config = json.loads(mcp_json.read_text(encoding="utf-8"))
+    else:
+        config = {}
+
+    if "mcpServers" not in config:
+        config["mcpServers"] = {}
+
+    # Point to the installed mango-brain's python
+    python_path = sys.executable.replace("\\", "/")
+
+    config["mcpServers"]["mango-brain"] = {
+        "command": python_path,
+        "args": ["-m", "server"],
+    }
+
+    mcp_json.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
+    print(f"  .mcp.json configured (python: {python_path})")
 
 
 def _patch_claude_md(project_path: Path, project_name: str) -> None:
@@ -321,10 +436,9 @@ def main() -> None:
     p_init.set_defaults(func=cmd_init)
 
     # install
-    p_install = sub.add_parser("install", help="Install skills/agents/rules into a project")
-    p_install.add_argument("--path", required=True, help="Path to the project directory")
-    p_install.add_argument("--project", help="Project name (for CLAUDE.md patch)")
-    p_install.add_argument("--patch-claude-md", action="store_true", help="Also patch CLAUDE.md")
+    p_install = sub.add_parser("install", help="Full interactive install into a project")
+    p_install.add_argument("--path", help="Path to the project directory (default: current dir)")
+    p_install.add_argument("--project", "-p", help="Project name (default: folder name)")
     p_install.set_defaults(func=cmd_install)
 
     # doctor
