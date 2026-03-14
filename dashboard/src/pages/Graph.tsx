@@ -4,7 +4,7 @@ import GraphView from "../components/GraphView.tsx";
 import MemoryDialog from "../components/MemoryDialog.tsx";
 import ProjectSelector from "../components/ProjectSelector.tsx";
 import { useGraph } from "../hooks/useApi.ts";
-import { Search, GitFork, Database, Layers, Eye } from "lucide-react";
+import { Search, GitFork, Database, Layers } from "lucide-react";
 
 const NODE_TYPE_COLORS: Record<string, string> = {
   semantic: "#3b82f6",

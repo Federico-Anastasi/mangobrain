@@ -64,7 +64,7 @@ export default function MemoryTable({ memories, loading, selectedId, onSelect }:
                   <span className={`px-2 py-0.5 rounded text-xs font-medium ${typeBadge[m.type] ?? "bg-slate-700 text-slate-300"}`}>
                     {m.type.slice(0, 3)}
                   </span>
-                  {m.is_deprecated && <AlertTriangle className="w-3 h-3 text-red-400" title="Deprecated" />}
+                  {m.is_deprecated && <span title="Deprecated"><AlertTriangle className="w-3 h-3 text-red-400" /></span>}
                 </div>
               </td>
               <td className="py-2 px-3 text-slate-200 max-w-md">

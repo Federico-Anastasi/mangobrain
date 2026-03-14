@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useSetupAll, useSetup } from "../hooks/useApi.ts";
 import type { SetupStep, SetupStepStatus } from "../types/index.ts";
 import {
@@ -112,7 +112,7 @@ function StepCard({
 }) {
   const [copied, setCopied] = useState(false);
   const config = STATUS_CONFIG[step.status];
-  const StatusIcon = config.icon;
+  void config.icon;
   const StepIcon = STEP_ICONS[step.step] || Circle;
 
   const copyPrompt = () => {
@@ -230,18 +230,9 @@ export default function Setup() {
 
   // Auto-select first project
   const activeProject = selectedProject || (projects && projects.length > 0 ? projects[0].project : null);
-  const { data: setup, loading: loadingSetup, refetch } = useSetup(activeProject);
+  const { data: setup, loading: loadingSetup } = useSetup(activeProject);
 
   const steps = setup?.steps || [];
-  const phases = useMemo(() => {
-    const grouped: Record<string, SetupStep[]> = {};
-    for (const s of steps) {
-      if (!grouped[s.phase]) grouped[s.phase] = [];
-      grouped[s.phase].push(s);
-    }
-    return grouped;
-  }, [steps]);
-
   const activeStepIndex = steps.findIndex(
     (s) => s.status === "pending" || s.status === "in_progress" || s.status === "failed"
   );

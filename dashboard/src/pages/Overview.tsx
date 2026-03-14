@@ -8,8 +8,8 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis,
 } from "recharts";
 import {
-  Database, GitFork, Heart, TrendingUp, Eye, Layers,
-  Shield, AlertTriangle, Info, Activity, Zap, Clock,
+  Database, GitFork, Eye, Layers,
+  Shield, Activity, Zap, Clock,
 } from "lucide-react";
 
 const COLORS = {
@@ -100,18 +100,22 @@ export default function Overview() {
     );
   }
 
-  const hb = adv.health_breakdown;
+  const hb = adv.health_breakdown ?? { graph_connectivity: 0, edge_diversity: 0, elaboration_depth: 0, access_balance: 0, component_unity: 0 };
+  const mq = adv.memory_quality ?? { type_distribution: {} };
+  const gr = adv.graph ?? { edge_types: {}, avg_degree: 0, typed_edge_ratio: 0, under_connected_0_1: 0, hubs_10_plus: 0, degree_histogram: {} };
+  const acc = adv.access ?? { gini_coefficient: 0, never_accessed: 0, never_accessed_pct: 0 };
+  const elab = adv.elaboration ?? { avg_count: 0, distribution: {} };
 
   // Data transforms
-  const typeData = Object.entries(adv.memory_quality.type_distribution).map(([name, value]) => ({ name, value }));
-  const edgeTypeData = Object.entries(adv.graph.edge_types).map(([name, value]) => ({ name, value }));
+  const typeData = Object.entries(mq.type_distribution ?? {}).map(([name, value]) => ({ name, value }));
+  const edgeTypeData = Object.entries(gr.edge_types ?? {}).map(([name, value]) => ({ name, value }));
   const growth = adv.growth_timeline ?? [];
   const radarData = [
-    { metric: "Graph", value: hb.graph_connectivity * 100 },
-    { metric: "Edges", value: hb.edge_diversity * 100 },
-    { metric: "Elab", value: hb.elaboration_depth * 100 },
-    { metric: "Access", value: hb.access_balance * 100 },
-    { metric: "Unity", value: hb.component_unity * 100 },
+    { metric: "Graph", value: (hb.graph_connectivity ?? 0) * 100 },
+    { metric: "Edges", value: (hb.edge_diversity ?? 0) * 100 },
+    { metric: "Elab", value: (hb.elaboration_depth ?? 0) * 100 },
+    { metric: "Access", value: (hb.access_balance ?? 0) * 100 },
+    { metric: "Unity", value: (hb.component_unity ?? 0) * 100 },
   ];
 
   // Recent activity: merge sessions + elaborations, sort by date
@@ -130,13 +134,13 @@ export default function Overview() {
   // Issues
   const issues: { severity: string; message: string; icon: React.ReactNode }[] = [];
   if (hb.access_balance < 0.3)
-    issues.push({ severity: "warning", message: `Gini ${adv.access.gini_coefficient.toFixed(2)} — access heavily biased`, icon: <Eye className="w-4 h-4" /> });
+    issues.push({ severity: "warning", message: `Gini ${acc.gini_coefficient.toFixed(2)} — access heavily biased`, icon: <Eye className="w-4 h-4" /> });
   if (hb.edge_diversity < 0.3)
-    issues.push({ severity: "warning", message: `${Math.round(adv.graph.typed_edge_ratio * 100)}% typed edges — too generic`, icon: <GitFork className="w-4 h-4" /> });
-  if (adv.access.never_accessed_pct > 40)
-    issues.push({ severity: "info", message: `${adv.access.never_accessed} memories never accessed (${adv.access.never_accessed_pct}%)`, icon: <Eye className="w-4 h-4" /> });
-  if (adv.graph.under_connected_0_1 > 0)
-    issues.push({ severity: "info", message: `${adv.graph.under_connected_0_1} under-connected memories (0-1 edges)`, icon: <Layers className="w-4 h-4" /> });
+    issues.push({ severity: "warning", message: `${Math.round(gr.typed_edge_ratio * 100)}% typed edges — too generic`, icon: <GitFork className="w-4 h-4" /> });
+  if (acc.never_accessed_pct > 40)
+    issues.push({ severity: "info", message: `${acc.never_accessed} memories never accessed (${acc.never_accessed_pct}%)`, icon: <Eye className="w-4 h-4" /> });
+  if (gr.under_connected_0_1 > 0)
+    issues.push({ severity: "info", message: `${gr.under_connected_0_1} under-connected memories (0-1 edges)`, icon: <Layers className="w-4 h-4" /> });
 
   return (
     <div className="space-y-5">
@@ -158,13 +162,13 @@ export default function Overview() {
           </div>
         </div>
         <HeroCard icon={<Database className="w-4 h-4" />} label="Memories" value={adv.total_memories} color="text-blue-400"
-          sub={`${adv.memory_quality.type_distribution.semantic ?? 0} sem · ${adv.memory_quality.type_distribution.procedural ?? 0} proc · ${adv.memory_quality.type_distribution.episodic ?? 0} epi`} />
-        <HeroCard icon={<GitFork className="w-4 h-4" />} label="Edges" value={adv.total_edges} color="text-green-400"
-          sub={`avg ${adv.graph.avg_degree}/mem · ${Math.round(adv.graph.typed_edge_ratio * 100)}% typed`} />
-        <HeroCard icon={<Layers className="w-4 h-4" />} label="Elaboration" value={`${adv.elaboration.avg_count}×`} color="text-cyan-400"
-          sub={`${Object.keys(adv.elaboration.distribution).length} depth levels`} />
-        <HeroCard icon={<Eye className="w-4 h-4" />} label="Access Gini" value={adv.access.gini_coefficient.toFixed(2)} color={adv.access.gini_coefficient < 0.5 ? "text-green-400" : adv.access.gini_coefficient < 0.7 ? "text-yellow-400" : "text-red-400"}
-          sub={adv.access.gini_coefficient < 0.5 ? "balanced" : adv.access.gini_coefficient < 0.7 ? "moderate bias" : "strong bias"} />
+          sub={`${(mq.type_distribution as Record<string, number>).semantic ?? 0} sem · ${(mq.type_distribution as Record<string, number>).procedural ?? 0} proc · ${(mq.type_distribution as Record<string, number>).episodic ?? 0} epi`} />
+        <HeroCard icon={<GitFork className="w-4 h-4" />} label="Edges" value={adv.total_edges ?? 0} color="text-green-400"
+          sub={`avg ${gr.avg_degree}/mem · ${Math.round(gr.typed_edge_ratio * 100)}% typed`} />
+        <HeroCard icon={<Layers className="w-4 h-4" />} label="Elaboration" value={`${elab.avg_count}×`} color="text-cyan-400"
+          sub={`${Object.keys(elab.distribution).length} depth levels`} />
+        <HeroCard icon={<Eye className="w-4 h-4" />} label="Access Gini" value={acc.gini_coefficient.toFixed(2)} color={acc.gini_coefficient < 0.5 ? "text-green-400" : acc.gini_coefficient < 0.7 ? "text-yellow-400" : "text-red-400"}
+          sub={acc.gini_coefficient < 0.5 ? "balanced" : acc.gini_coefficient < 0.7 ? "moderate bias" : "strong bias"} />
       </div>
 
       {/* ─── Row 2: Radar + Distributions + Growth ─── */}
@@ -283,14 +287,14 @@ export default function Overview() {
         {/* Degree Distribution */}
         <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
           <h3 className="text-sm font-medium text-slate-400 mb-1">Connection Distribution</h3>
-          <p className="text-xs text-slate-500 mb-3">Edges per memory — {adv.graph.under_connected_0_1} under-connected · {adv.graph.hubs_10_plus} hubs</p>
+          <p className="text-xs text-slate-500 mb-3">Edges per memory — {gr.under_connected_0_1} under-connected · {gr.hubs_10_plus} hubs</p>
           <ResponsiveContainer width="100%" height={220}>
-            <BarChart data={Object.entries(adv.graph.degree_histogram).map(([k, v]) => ({ edges: k, count: v }))}>
+            <BarChart data={Object.entries(gr.degree_histogram ?? {}).map(([k, v]) => ({ edges: k, count: v }))}>
               <XAxis dataKey="edges" stroke="#475569" tick={{ fontSize: 11 }} />
               <YAxis stroke="#475569" tick={{ fontSize: 11 }} />
               <Tooltip contentStyle={tooltipStyle} />
               <Bar dataKey="count">
-                {Object.entries(adv.graph.degree_histogram).map(([k], i) => {
+                {Object.entries(gr.degree_histogram ?? {}).map(([k], i) => {
                   const isTarget = ["3", "4", "5"].includes(k);
                   const isLow = ["0", "1"].includes(k);
                   return <Cell key={i} fill={isLow ? COLORS.red : isTarget ? COLORS.green : COLORS.purple} />;

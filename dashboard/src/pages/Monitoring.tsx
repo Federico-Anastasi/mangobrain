@@ -3,9 +3,9 @@ import type { Prescription } from "../types/index.ts";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   AreaChart, Area, RadarChart, Radar, PolarGrid, PolarAngleAxis,
-  PieChart, Pie, Cell, Legend,
+  PieChart, Pie, Cell,
 } from "recharts";
-import { AlertTriangle, CheckCircle, Info, TrendingUp, GitFork, Eye, Layers, Shield } from "lucide-react";
+import { CheckCircle, Info, TrendingUp, GitFork, Eye, Layers, Shield } from "lucide-react";
 
 const COLORS = {
   purple: "#8b5cf6",
@@ -284,7 +284,7 @@ export default function Monitoring() {
           <p className="text-xs text-slate-500 mb-3">{Math.round(adv.graph.typed_edge_ratio * 100)}% typed (non-relates_to)</p>
           <ResponsiveContainer width="100%" height={180}>
             <PieChart>
-              <Pie data={edgeTypeData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} labelLine={false}>
+              <Pie data={edgeTypeData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ""} ${((percent ?? 0) * 100).toFixed(0)}%`} labelLine={false}>
                 {edgeTypeData.map((entry, i) => (
                   <Cell key={i} fill={EDGE_COLORS[entry.name] || COLORS.slate} />
                 ))}
