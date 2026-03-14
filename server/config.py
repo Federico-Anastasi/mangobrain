@@ -134,15 +134,16 @@ def _resolve_model(device: str) -> str:
 
 # ── Resolved config values ────────────────────────────────────────────────────
 
-# Paths — resolve DB relative to repo root (dev) or cwd (pip install)
+# Paths — resolve DB location
+# Priority: MANGOBRAIN_DB env var > config file > cwd/data/
+_db_env = os.environ.get("MANGOBRAIN_DB")
 _db_raw = Path(_get("database", "path", "data/mangobrain.db"))
-if _db_raw.is_absolute():
+if _db_env:
+    DB_PATH = Path(_db_env)
+elif _db_raw.is_absolute():
     DB_PATH = _db_raw
-elif (PROJECT_ROOT / _db_raw).parent.exists():
-    # Dev / clone: resolve relative to repo root
-    DB_PATH = PROJECT_ROOT / _db_raw
 else:
-    # pip install: resolve relative to cwd
+    # Use cwd (project directory) — each project gets its own DB
     DB_PATH = Path.cwd() / _db_raw
 
 # Embedding

@@ -445,7 +445,7 @@ async def diagnose_impl_standalone(db: Database, project: Optional[str] = None, 
     }
 
 
-def create_api_router(db: Database) -> APIRouter:
+def create_api_router(db: Database, retrieval=None) -> APIRouter:
     """Create API router with all dashboard endpoints."""
     router = APIRouter(prefix="/api")
 
@@ -1079,5 +1079,56 @@ def create_api_router(db: Database) -> APIRouter:
         """Initialize setup progress for a project."""
         count = await db.init_setup_progress(project)
         return {"project": project, "steps_created": count}
+
+    # ── Remember (query) ──────────────────────────────────────────────
+
+    @router.get("/remember")
+    async def remember_query(
+        query: str = Query("", min_length=0),
+        mode: str = "deep",
+        project: Optional[str] = None,
+    ):
+        """Query memories using the retrieval engine (same as MCP remember)."""
+        if not retrieval:
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Retrieval engine not available (API started without embeddings)"},
+            )
+        try:
+            if mode == "recent":
+                memories, scores, total_tokens = await retrieval.remember_recent(
+                    project=project or None,
+                    dry_run=True,
+                )
+            else:
+                if not query.strip():
+                    return JSONResponse(
+                        status_code=400,
+                        content={"error": "query is required for deep/quick mode"},
+                    )
+                memories, scores, total_tokens = await retrieval.remember(
+                    query=query.strip(),
+                    mode=mode,
+                    project=project or None,
+                    dry_run=True,
+                )
+            items = []
+            for i, m in enumerate(memories):
+                d = _memory_to_dict(m)
+                d["score"] = round(float(scores[i]) if i < len(scores) else 0.0, 4)
+                items.append(d)
+            return {
+                "query": query,
+                "mode": mode,
+                "project": project,
+                "count": len(items),
+                "total_tokens": total_tokens,
+                "results": items,
+            }
+        except Exception as e:
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(e)},
+            )
 
     return router

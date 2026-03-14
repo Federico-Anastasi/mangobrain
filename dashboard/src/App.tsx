@@ -6,6 +6,7 @@ import Graph from "./pages/Graph.tsx";
 import Monitoring from "./pages/Monitoring.tsx";
 import Setup from "./pages/Setup.tsx";
 import Guide from "./pages/Guide.tsx";
+import Remember from "./pages/Remember.tsx";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <main className="flex-1 overflow-y-auto p-6">
           <Routes>
             <Route path="/" element={<Overview />} />
+            <Route path="/remember" element={<Remember />} />
             <Route path="/memories" element={<Memories />} />
             <Route path="/graph" element={<Graph />} />
             <Route path="/monitoring" element={<Monitoring />} />

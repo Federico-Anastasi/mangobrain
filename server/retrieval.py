@@ -38,6 +38,7 @@ class RetrievalEngine:
         project: Optional[str] = None,
         budget: Optional[int] = None,
         session_id: Optional[str] = None,
+        dry_run: bool = False,
     ) -> tuple[list[Memory], int]:
         """Retrieve relevant memories for a query.
 
@@ -87,33 +88,34 @@ class RetrievalEngine:
         threshold_ratio = RELEVANCE_THRESHOLD_RATIO if mode == "deep" else QUICK_RELEVANCE_THRESHOLD_RATIO
         selected, scores = self._knapsack_select(phi, memories, budget, max_results, threshold_ratio)
 
-        # 7. Update access stats
-        now = datetime.utcnow()
-        for m in selected:
-            await self.db.update_memory(m.id, {
-                "last_accessed": now,
-                "access_count": m.access_count + 1,
-            })
+        # 7. Update access stats (skip in dry_run mode — dashboard queries)
+        if not dry_run:
+            now = datetime.utcnow()
+            for m in selected:
+                await self.db.update_memory(m.id, {
+                    "last_accessed": now,
+                    "access_count": m.access_count + 1,
+                })
 
-        # 8. Reinforce existing co_occurs edges between co-selected memories
-        # NOTE: Only reinforce edges that already exist — do NOT create new ones.
-        # Creating co_occurs edges on every retrieval causes edge explosion and
-        # destroys ranking by making graph propagation uniform.
-        for i, m1 in enumerate(selected):
-            for m2 in selected[i + 1:]:
-                existing = [
-                    e for e in edges
-                    if e.type == EdgeType.co_occurs
-                    and {e.from_id, e.to_id} == {m1.id, m2.id}
-                ]
-                if existing:
-                    e = existing[0]
-                    new_weight = min(e.weight + 0.05, 1.0)
-                    await self.db.update_edge(e.id, {
-                        "weight": new_weight,
-                        "last_reinforced": now,
-                        "reinforce_count": e.reinforce_count + 1,
-                    })
+            # 8. Reinforce existing co_occurs edges between co-selected memories
+            # NOTE: Only reinforce edges that already exist — do NOT create new ones.
+            # Creating co_occurs edges on every retrieval causes edge explosion and
+            # destroys ranking by making graph propagation uniform.
+            for i, m1 in enumerate(selected):
+                for m2 in selected[i + 1:]:
+                    existing = [
+                        e for e in edges
+                        if e.type == EdgeType.co_occurs
+                        and {e.from_id, e.to_id} == {m1.id, m2.id}
+                    ]
+                    if existing:
+                        e = existing[0]
+                        new_weight = min(e.weight + 0.05, 1.0)
+                        await self.db.update_edge(e.id, {
+                            "weight": new_weight,
+                            "last_reinforced": now,
+                            "reinforce_count": e.reinforce_count + 1,
+                        })
 
         total_tokens = sum(m.token_count for m in selected)
 
@@ -131,6 +133,7 @@ class RetrievalEngine:
         limit: int = 15,
         k_neighbors: int = 2,
         budget: int = 8000,
+        dry_run: bool = False,
     ) -> tuple[list[Memory], list[float], int]:
         """Retrieve recent memories + their graph neighbors.
 
@@ -192,13 +195,14 @@ class RetrievalEngine:
             scores.append(score)
             total_tokens += m.token_count
 
-        # 6. Update access stats
-        now = datetime.utcnow()
-        for m in selected:
-            await self.db.update_memory(m.id, {
-                "last_accessed": now,
-                "access_count": m.access_count + 1,
-            })
+        # 6. Update access stats (skip in dry_run mode — dashboard queries)
+        if not dry_run:
+            now = datetime.utcnow()
+            for m in selected:
+                await self.db.update_memory(m.id, {
+                    "last_accessed": now,
+                    "access_count": m.access_count + 1,
+                })
 
         return selected, scores, total_tokens
 

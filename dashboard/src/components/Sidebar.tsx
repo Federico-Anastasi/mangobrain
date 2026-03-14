@@ -7,10 +7,12 @@ import {
   Brain,
   Rocket,
   BookOpen,
+  Search,
 } from "lucide-react";
 
 const links = [
   { to: "/", label: "Overview", icon: LayoutDashboard },
+  { to: "/remember", label: "Remember", icon: Search },
   { to: "/setup", label: "Setup", icon: Rocket },
   { to: "/memories", label: "Memories", icon: Database },
   { to: "/graph", label: "Graph", icon: GitFork },

@@ -366,9 +366,13 @@ def _setup_mcp_json(project_path: Path) -> None:
     # Point to the installed mango-brain's python
     python_path = sys.executable.replace("\\", "/")
 
+    db_path = (project_path / "data" / "mangobrain.db").resolve().as_posix()
     config["mcpServers"]["mango-brain"] = {
         "command": python_path,
         "args": ["-m", "server"],
+        "env": {
+            "MANGOBRAIN_DB": db_path,
+        },
     }
 
     mcp_json.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")

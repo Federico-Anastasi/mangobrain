@@ -500,8 +500,14 @@ def register_tools(
 
         # Update edges
         for eup in eu.edges_to_update:
-            await db.update_edge(eup.id, {"weight": eup.new_weight})
-            report.updated_edges += 1
+            fields: dict[str, Any] = {}
+            if eup.new_weight is not None:
+                fields["weight"] = eup.new_weight
+            if eup.new_type is not None:
+                fields["type"] = eup.new_type
+            if fields:
+                await db.update_edge(eup.id, fields)
+                report.updated_edges += 1
 
         # Remove edges
         for eid in eu.edges_to_remove:

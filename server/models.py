@@ -139,7 +139,8 @@ class EdgeAdd(BaseModel):
 
 class EdgeUpdate(BaseModel):
     id: str
-    new_weight: float
+    new_weight: float | None = None
+    new_type: str | None = None
 
 
 class ElaborationUpdate(BaseModel):

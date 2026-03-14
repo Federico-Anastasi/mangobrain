@@ -1,6 +1,6 @@
 # MangoBrain — Init Phase 3: Event Base (Existing Knowledge Import)
 
-You are the MangoBrain Initializer. This session imports knowledge from existing structured sources — PROJECT_MEMORY.jsonl, markdown docs, task lists, Notion exports, or any other knowledge files the user has.
+You are the MangoBrain Initializer. This session imports knowledge from existing project documentation — decision logs, architecture docs, post-mortems, task lists, bug reports, or any other knowledge files the user has.
 
 Phase 1 created the documentation foundation. Phase 2 mapped the codebase artifacts. This phase adds the **historical context** — bugs encountered, features built, decisions made over time.
 
@@ -12,109 +12,43 @@ You have access to MangoBrain MCP tools.
 
 ## This phase is OPTIONAL
 
-Not every project has pre-existing knowledge files. At the start, **ask the user**:
+Not every project has existing documentation beyond the codebase. At the start, **ask the user**:
 
-> "Do you have existing knowledge sources to import? Common formats:
-> - PROJECT_MEMORY.jsonl (structured log from Claude Code)
-> - Markdown docs (decision logs, architecture docs, post-mortems)
-> - Task/issue lists
-> - Notion exports
-> - Any other structured knowledge
+> "Do you have any project documentation or knowledge sources I should import? For example:
+> - Decision logs or architecture documents
+> - Post-mortems or bug reports
+> - Task/issue lists (completed work with lessons learned)
+> - Notion, Confluence, or wiki exports
+> - Any other structured knowledge about the project's history
 >
-> Provide file paths, or say 'skip' to move to Phase 4."
+> If not, no worries — this step is optional. Just say 'skip' and we'll move on."
 
-If the user says "skip" or "no":
-- Report: `Phase 3 skipped (no existing knowledge sources).`
+If the user says "skip", "no", or there are no sources:
+- Report: `Phase 3 skipped — no existing documentation to import.`
 - Instruct: `Next: run Phase 4 (04-chat-base.md)`
 - Stop.
 
 ---
 
-## Source type: PROJECT_MEMORY.jsonl
+## Source type: Structured data (JSONL, JSON, CSV)
 
-This is the most common source — a structured JSONL file where each line is a JSON object with:
-```json
-{
-  "type": "BUG|FEATURE|KNOWLEDGE",
-  "date": "2025-01-15",
-  "title": "Short description",
-  "description": "Detailed explanation",
-  "keywords": ["tag1", "tag2"]
-}
-```
-
-### Reading
-Use `read_project_memory(path=<path>, offset=0, limit=50)` to read in batches of 50 entries. Repeat with increasing offset until all entries are consumed.
-
-**Read ALL entries before extracting.** You need the full picture to identify areas, detect duplicates, and create abstractions.
-
-### Extraction process
+For structured data files, read them in batches. Apply a 4-pass process:
 
 #### PASS 1 — Survey
-Read all entries. Build a map:
-- Group entries by area/topic (e.g., "booking wizard", "price handling", "auth flow", "mobile UX", "Stripe integration")
-- Count entries per area
-- Note the date range (oldest to newest)
-- Identify entries that are clearly superseded by later ones
-
-Output:
-```
-Areas identified:
-- booking wizard: 12 entries (2024-06 to 2025-02)
-- price handling: 5 entries (2024-09 to 2025-01)
-- auth flow: 8 entries (2024-07 to 2025-02)
-- ...
-Total: <N> entries, <N> areas
-```
+Read all entries. Group by area/topic. Count per area. Note date range. Identify superseded entries.
 
 #### PASS 2 — Extract per entry
-Process entries area by area (not chronologically). For each entry that contains a meaningful lesson:
-
-**BUG entries → episodic memories:**
-Extract the root cause + fix + lesson. The value is the WHY, not the WHAT.
-```
-Good: "MusicLabs booking price bug (2024-11): formatPrice() divided cents by 100 twice — once in the formatter and once in the component. Root cause: unclear cents-vs-euros contract at the API boundary. Fix: API always returns cents, formatPrice() always receives cents. Lesson: document money unit at every function boundary."
-
-Bad: "Fixed a bug in the booking wizard where the price showed wrong."
-```
-
-**FEATURE entries → episodic or semantic memories:**
-Extract what it does, key design decisions, and any constraints. Skip trivial features.
-```
-Good: "MusicLabs multi-room booking (2024-12): allows booking multiple rooms in a single transaction. Key decision: cart model in localStorage (not DB) because users are anonymous until checkout. Constraint: max 5 rooms per transaction (Stripe line item limit)."
-```
-
-**KNOWLEDGE entries → semantic or procedural memories:**
-These are usually already well-formed knowledge. Refine the wording and store.
-
-**Skip these:**
-- Entries that just say "fixed X" with no explanation of WHY
-- Entries superseded by later entries about the same thing
-- Minor UI tweaks with no generalizable lesson
-- Routine operations ("deployed to staging", "ran migrations")
+Process area by area. For each meaningful entry:
+- **Bug/incident entries → episodic memories:** Extract root cause + fix + lesson (the WHY, not the WHAT)
+- **Feature entries → episodic or semantic memories:** What it does, key decisions, constraints
+- **Knowledge entries → semantic or procedural memories:** Refine and store
+- **Skip:** trivial fixes, superseded entries, routine operations
 
 #### PASS 3 — Abstract per area
-For each major area with 3+ entries, create one semantic abstraction memory:
-
-```
-"MusicLabs booking wizard has gone through 3+ refactors. Recurring pain points: price conversion at cents/euros boundaries, localStorage state persistence across auth redirects, date timezone handling (UTC vs local), mobile keyboard overlap on input fields. Key lesson: always validate data types and units at storage/retrieval boundaries."
-```
-
-These abstraction memories are high-value — they capture patterns that individual entries don't.
+For each major area with 3+ entries, create one semantic abstraction memory capturing recurring patterns and lessons.
 
 #### PASS 4 — Finalization
-Apply the checklist from `memory-definition.md`:
-- English, 2-5 lines, dense, self-contained
-- Type assigned
-- Tags assigned (use keywords from the original entries where applicable)
-- Relations added
-
-**Critical: Link to Phase 1 and Phase 2 memories.**
-Use `target_query` to link:
-- Bug memories → reference memories about the affected file/utility (`depends_on` or `caused_by`)
-- Feature memories → architectural pattern memories (`relates_to`)
-- Knowledge memories → convention/rule memories (`relates_to` or `supersedes` if the knowledge updates a rule)
-- Area abstractions → all individual memories in that area (`relates_to`)
+Apply the checklist from `memory-definition.md`. Link to Phase 1 and Phase 2 memories using `target_query`.
 
 ---
 
@@ -191,11 +125,3 @@ No existing knowledge sources provided.
 Next: run Phase 4 (04-chat-base.md) for chat session extraction
 ```
 
----
-
-## Usage
-
-```bash
-cd C:/Users/Mango/Desktop/Dev_FA/mangodev/mango-brain
-claude "Read prompts/init/03-event-base.md and follow its instructions exactly. Project: musiclabs, project_path: C:/Users/Mango/Desktop/Dev_FA/musiclabs"
-```

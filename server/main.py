@@ -52,8 +52,15 @@ async def run_api_server() -> None:
     from fastapi.staticfiles import StaticFiles
 
     from server.api_routes import create_api_router
+    from server.embeddings import Embedder
+    from server.graph import GraphManager
+    from server.retrieval import RetrievalEngine
 
     db = await Database.create(DB_PATH)
+    embedder = Embedder(EMBEDDING_MODEL, EMBEDDING_DEVICE)
+    embedder.load()
+    graph = GraphManager()
+    retrieval = RetrievalEngine(db, embedder, graph)
 
     app = FastAPI(title="MangoBrain API", version="3.0.0")
     app.add_middleware(
@@ -63,7 +70,7 @@ async def run_api_server() -> None:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    app.include_router(create_api_router(db))
+    app.include_router(create_api_router(db, retrieval))
 
     # Serve dashboard static files if the build exists
     dashboard_dist = PACKAGE_DIR / "dashboard_dist"
@@ -122,7 +129,7 @@ async def run_all() -> None:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    app.include_router(create_api_router(db))
+    app.include_router(create_api_router(db, retrieval))
 
     dashboard_dist = PACKAGE_DIR / "dashboard_dist"
     if dashboard_dist.exists():
