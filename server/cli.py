@@ -127,20 +127,26 @@ def cmd_install(args: argparse.Namespace) -> None:
 
     # ── Step 2: Install PyTorch ──
     print("\n[2/5] Setting up PyTorch...")
+    needs_torch = False
     try:
         import torch
         cuda_ok = torch.cuda.is_available()
-        print(f"  PyTorch already installed: {torch.__version__} ({'CUDA' if cuda_ok else 'CPU'})")
         if has_gpu and not cuda_ok:
-            print("  WARNING: GPU detected but PyTorch is CPU-only.")
-            print("  To upgrade: pip install torch --index-url https://download.pytorch.org/whl/cu124")
+            print(f"  PyTorch {torch.__version__} found but CPU-only — reinstalling with CUDA...")
+            needs_torch = True
+        else:
+            print(f"  PyTorch already installed: {torch.__version__} ({'CUDA' if cuda_ok else 'CPU'})")
     except ImportError:
+        needs_torch = True
         print("  PyTorch not found — installing...")
+
+    if needs_torch:
         if has_gpu:
             print(f"  Installing PyTorch with CUDA support for {gpu_name}...")
             subprocess.run(
                 [sys.executable, "-m", "pip", "install", "torch",
-                 "--index-url", "https://download.pytorch.org/whl/cu124"],
+                 "--index-url", "https://download.pytorch.org/whl/cu124",
+                 "--force-reinstall"],
                 check=True,
             )
             print("  PyTorch CUDA installed.")
