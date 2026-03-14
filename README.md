@@ -235,32 +235,25 @@ Install MangoBrain for this project.
 
 6. Add .mangobrain/ to .gitignore
 
-7. When everything is done, tell me to CLOSE AND REOPEN Claude Code to load the
+7. Start the MangoBrain dashboard API server as a background process:
+   run "mango-brain serve --api" using the venv binary (in background, don't wait for it)
+   Then tell me to open http://localhost:3101 in the browser — this is the MangoBrain
+   dashboard where I can track initialization progress in real-time.
+
+8. When everything is done, tell me to CLOSE AND REOPEN Claude Code to load the
    MangoBrain MCP server. After reopening, I should run /init to start memory
    initialization.
 ```
 
 Claude handles everything — just approve the commands when prompted.
 
-### Step 2 — Open the Dashboard
-
-Open a separate terminal and start the dashboard **before anything else**:
-
-```bash
-# Windows
-.mangobrain\.venv\Scripts\mango-brain serve --api
-
-# Unix
-.mangobrain/.venv/bin/mango-brain serve --api
-```
-
-Go to **http://localhost:3101**. You'll see the Setup page with all steps at "pending". This is your control center — it updates live as you progress through initialization, shows the guide, and tracks memory health.
-
-### Step 3 — Restart Claude Code
+### Step 2 — Restart Claude Code
 
 After Step 1 completes, Claude will tell you to restart. **Close and reopen Claude Code** in your project. This loads the MangoBrain MCP server.
 
-### Step 4 — Initialize Memory
+The dashboard is already running at **http://localhost:3101** — open it to follow the initialization progress live.
+
+### Step 3 — Initialize Memory
 
 In the new session, run:
 
