@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mango-brain"
-version = "3.0.0"
+version = "3.0.1"
 description = "Persistent associative memory system for Claude Code — complete development workflow"
 readme = "README.md"
 license = {text = "MIT"}
