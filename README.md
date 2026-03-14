@@ -8,231 +8,162 @@
 <h1 align="center">🧠 MangoBrain</h1>
 
 <p align="center">
-  <strong>Persistent associative memory + complete development workflow for Claude Code</strong>
+  <strong>A development system for Claude Code where every session learns from the last</strong>
 </p>
 
 <p align="center">
-  <em>Claude forgets everything between sessions. MangoBrain fixes that.</em>
+  <em>Plan with /discuss. Execute with /task. Knowledge saves itself.</em>
 </p>
 
 ---
 
 ## The Problem
 
-Every time you start a new Claude Code session, you lose context. Architecture decisions, bug patterns, code conventions, past mistakes — all gone. You end up re-explaining the same things, hitting the same bugs, making the same decisions.
+Claude Code forgets everything between sessions. Every new conversation starts from zero — you re-explain architecture, re-discover bugs, re-make decisions. The longer your project lives, the more you repeat yourself.
 
-## The Solution
+Memory MCP servers exist, but they're just databases. They store and retrieve. You still have to manually decide what to save, when to recall, and how to structure it. The memory doesn't participate in your workflow — it sits next to it.
 
-MangoBrain gives Claude **long-term memory** that persists across sessions. It remembers what matters and retrieves it when relevant — automatically.
+## How MangoBrain Works
 
-It also provides a **complete development workflow** (plan → execute → verify → remember) that naturally captures knowledge as you work.
+MangoBrain is not a memory store. It's a **complete development workflow** that builds memory as a side-effect of doing real work.
 
 ```
-Session 1: "Prices must be stored in cents, never euros"
-    ↓ saved to memory
-Session 47: *Claude is about to write price logic*
-    ↓ memory surfaces automatically
-Claude: "I see from past sessions that prices are stored in cents..."
+ /discuss                    /task                         automatic
+ ┌──────────────┐      ┌───────────────────┐      ┌──────────────────┐
+ │ Plan a feature│      │ Execute the plan   │      │ mem-manager      │
+ │              │      │                   │      │ saves what you   │
+ │ Claude starts │─────▶│ analyzer explores  │─────▶│ learned, what    │
+ │ by recalling  │      │   with memory     │      │ broke, what      │
+ │ past decisions│      │ executor codes     │      │ decisions were   │
+ │ and known bugs│      │ verifier checks    │      │ made — without   │
+ │              │      │   known issues    │      │ you doing        │
+ │ You plan     │      │                   │      │ anything         │
+ │ better.      │      │ You ship faster.  │      │ Next session     │
+ │              │      │                   │      │ starts smarter.  │
+ └──────────────┘      └───────────────────┘      └──────────────────┘
 ```
+
+**Session 1:** You tell Claude that prices must be stored in cents, not euros.
+**Session 47:** Claude is about to write price logic. The memory surfaces automatically. Claude already knows.
+
+**Session 3:** A timezone bug costs you 2 hours debugging.
+**Session 28:** Claude touches date logic. The verifier recalls the timezone gotcha. The bug doesn't happen again.
+
+This is the closed loop that no other tool provides: **work → capture → recall → better work**.
 
 ---
 
-## ✨ Features
+## How It's Different
 
-<table>
-<tr>
-<td width="50%">
+Most tools give you a piece of the puzzle. MangoBrain is the whole puzzle.
 
-### 🔍 Smart Retrieval
-Three modes tuned for different moments:
-- **Deep** (~20 results) — session start, full context
-- **Quick** (~6 results) — mid-task lookups
-- **Recent** (~15 results) — WIP and temporal context
+| | Memory Store | Workflow Framework | MangoBrain |
+|---|---|---|---|
+| | *Mem0, Official MCP, WhenMoon* | *Ruflo, Claude Pilot, cc-sdd* | |
+| **Remembers across sessions** | ✅ | ❌ or basic | ✅ |
+| **Structured workflow** | ❌ | ✅ | ✅ |
+| **Specialized agents** | ❌ | Some | ✅ 4 agents with strict roles |
+| **Graph relationships** | ❌ | ❌ | ✅ typed edges + propagation |
+| **Temporal decay** | ❌ | ❌ | ✅ episodic/semantic/procedural |
+| **Contradicts & supersedes** | ❌ | ❌ | ✅ outdated info auto-suppressed |
+| **Memory captures automatically** | ❌ | ❌ | ✅ mem-manager at session close |
+| **Memory informs execution** | ❌ | ❌ | ✅ analyzer + verifier query memory |
+| **Health monitoring** | ❌ | ❌ | ✅ dashboard + diagnose + alerts |
 
-</td>
-<td width="50%">
-
-### 🕸️ Graph Memory
-Memories aren't flat — they're connected:
-- `depends_on`, `caused_by` — directional
-- `contradicts` — suppresses outdated info
-- `supersedes` — version chains
-- PageRank-style propagation
-
-</td>
-</tr>
-<tr>
-<td>
-
-### ⏳ Temporal Decay
-Not all memories age equally:
-- **Episodic** (bugs, events) → decay fast
-- **Semantic** (architecture, patterns) → decay slow
-- **Procedural** (conventions, how-to) → persist
-
-</td>
-<td>
-
-### 🤖 Agent Workflow
-Specialized agents for each job:
-- **analyzer** — explores code + recalls memory
-- **executor** — writes code (100% focus, no memory)
-- **verifier** — QA + checks known issues
-- **mem-manager** — saves knowledge at session close
-
-</td>
-</tr>
-</table>
-
-### 📊 Dashboard
-
-Visual monitoring with 6 pages:
-
-| Page | What it shows |
-|------|---------------|
-| **Overview** | Health score, growth timeline, setup status |
-| **Setup** | Step-by-step initialization wizard |
-| **Memories** | Search, filter, inspect individual memories |
-| **Graph** | Force-directed memory graph visualization |
-| **Monitoring** | Health breakdown, prescriptions, elaboration logs |
-| **Guide** | Complete in-app documentation |
+> **The difference:** other tools give you storage or structure. MangoBrain gives you a system where the *verifier* knows that bug #47 already happened, the *analyzer* starts with architectural context from 30 sessions ago, and the *mem-manager* captures what worked — without you lifting a finger.
 
 ---
 
-## 🚀 Quick Start
+## The Workflow
 
-### 1. Clone & Install
+### Daily cycle
 
-```bash
-git clone https://github.com/Federico-Anastasi/mangobrain.git
-cd mangobrain
-
-python -m venv .venv
-# Windows:
-.venv\Scripts\activate
-# Unix:
-source .venv/bin/activate
-
-pip install -e .
+```
+/discuss ──→ /task ──→ knowledge saved automatically
+    │            │              │
+    │            │              ▼
+    │            │        Next /discuss starts
+    │            │        with more context
+    │            ▼
+    │      4 specialized agents:
+    │      • analyzer (explores code + recalls memory)
+    │      • executor (writes code — 100% focused, no memory)
+    │      • verifier (QA + checks past known issues)
+    │      • mem-manager (saves everything at close)
+    │
+    ▼
+  Produces task.md → fed into /task
 ```
 
-### 2. Build Dashboard
+### `/discuss` — Plan with memory
+You describe what you want to build. Claude recalls past decisions, known bugs, architectural patterns. Analyzer agents explore the codebase *and* query memory for relevant gotchas. You plan with full context. Output: a `task.md` ready for execution.
 
-```bash
-cd dashboard && npm install && npm run build && cd ..
-```
+### `/task` — Execute with agents
+Claude reads the task, spawns analyzers (code + memory), creates a plan, then sends executors to write code. The verifier checks the result *and* queries memory for known issues in the areas touched. At close, the mem-manager captures everything learned.
 
-### 3. Initialize Your Project
+### `/memorize` — Manual save (free sessions)
+For sessions outside the discuss→task cycle. Spawns the mem-manager to extract and save what happened.
 
-```bash
-mango-brain init --project myproject --path /path/to/your/project
-```
+### Maintenance
 
-### 4. Configure Claude Code
-
-Add to your project's `.mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "mango-brain": {
-      "command": "python",
-      "args": ["-m", "server"],
-      "cwd": "/path/to/mangobrain"
-    }
-  }
-}
-```
-
-### 5. Start Using
-
-```bash
-# Start API + Dashboard
-mango-brain serve --api
-# → http://localhost:3101
-```
-
-Then in Claude Code, run `/init` to begin the guided setup.
+| Skill | When | What it does |
+|-------|------|-------------|
+| `/elaborate` | Weekly | Consolidates memory: builds graph edges, finds contradictions, creates abstractions |
+| `/health-check` | Monthly | Diagnoses memory health, finds content gaps, runs targeted fixes |
+| `/smoke-test` | After changes | Tests retrieval quality with 10-20 diverse queries |
 
 ---
 
-## 🔧 Daily Workflow
+## Under the Hood
 
-```
-┌─────────────┐     ┌─────────────┐     ┌──────────────┐
-│  /discuss    │────▶│   /task      │────▶│  /memorize   │
-│  Plan with   │     │  Execute     │     │  Save what   │
-│  memory      │     │  with agents │     │  you learned │
-└─────────────┘     └─────────────┘     └──────────────┘
-       │                    │                    │
-       ▼                    ▼                    ▼
-  remember()           analyzer()          mem-manager()
-  past decisions       code + memory       memorize + sync
-```
-
-### Skills
-
-| Skill | Purpose |
-|-------|---------|
-| `/discuss` | Brainstorm + plan with memory context → produces `task.md` |
-| `/task` | Full execution cycle: analyze → plan → execute → verify → close |
-| `/memorize` | End-of-session sync for free sessions |
-| `/init` | Guided memory initialization (14 steps) |
-| `/elaborate` | Periodic consolidation — build graph, find contradictions |
-| `/health-check` | Diagnose + optimize memory health |
-| `/smoke-test` | Test retrieval quality with diverse queries |
-
-### Maintenance Schedule
-
-| Task | Frequency | Skill |
-|------|-----------|-------|
-| Elaborate | Weekly | `/elaborate` |
-| Health check | Monthly | `/health-check` |
-| Smoke test | After major changes | `/smoke-test` |
-
----
-
-## ⚙️ Configuration
-
-Edit `mangobrain.toml`:
-
-```toml
-[embedding]
-model = "auto"        # GPU → bge-large (1024d), CPU → bge-base (768d)
-device = "auto"       # auto-detects CUDA
-
-[retrieval]
-deep_threshold = 0.78
-quick_threshold = 0.85
-
-[decay]
-episodic = 0.01       # fast
-semantic = 0.002      # medium
-procedural = 0.001    # slow
-```
-
----
-
-## 🛠️ CLI Reference
-
-```bash
-mango-brain serve              # MCP server (stdio)
-mango-brain serve --api        # API + dashboard
-mango-brain serve --all        # Both
-
-mango-brain init -p NAME --path PATH   # Initialize project
-mango-brain install --path PATH        # Install skills/agents/rules
-mango-brain status -p NAME             # Setup progress
-mango-brain doctor                     # System health
-mango-brain dashboard                  # Open in browser
-```
-
----
-
-## 🧩 MCP Tools
+The memory engine isn't a simple vector database. It has three layers that work together:
 
 <details>
-<summary><strong>14 tools available</strong> (click to expand)</summary>
+<summary><strong>🔍 Retrieval — Three modes for different moments</strong></summary>
+
+| Mode | Results | Graph | When |
+|------|---------|-------|------|
+| **Deep** | ~20 | Full propagation (α=0.3) | Session start, big picture |
+| **Quick** | ~6 | Light propagation (α=0.15) | Mid-task lookups |
+| **Recent** | ~15 | Time-weighted | WIP context, session resume |
+
+The retrieval pipeline: cosine similarity → graph propagation (PageRank-style) → knapsack selection (optimize relevance per token).
+
+</details>
+
+<details>
+<summary><strong>🕸️ Graph — Memories are connected, not flat</strong></summary>
+
+Every memory can relate to others through typed edges:
+
+| Edge | Direction | Effect in retrieval |
+|------|-----------|-------------------|
+| `relates_to` | bidirectional | mutual boost |
+| `depends_on` | A → B | A boosts B |
+| `caused_by` | A → B | A boosts B |
+| `co_occurs` | bidirectional | mutual boost |
+| `contradicts` | bidirectional | **suppresses** the weaker one |
+| `supersedes` | A → B | **suppresses** the old version |
+
+This means: when a decision is updated, the old version doesn't just sit there confusing Claude — it gets automatically suppressed.
+
+</details>
+
+<details>
+<summary><strong>⏳ Decay — Not all memories age equally</strong></summary>
+
+| Type | Decay rate | Example |
+|------|-----------|---------|
+| **Episodic** | Fast (0.01/day) | "Bug X happened on Tuesday" |
+| **Semantic** | Slow (0.002/day) | "This module uses the strategy pattern" |
+| **Procedural** | Very slow (0.001/day) | "Always use cents, never euros" |
+
+Bug reports fade. Architecture decisions persist. Conventions stick around forever.
+
+</details>
+
+<details>
+<summary><strong>🧩 MCP Tools (14 available)</strong></summary>
 
 | Tool | Description |
 |------|-------------|
@@ -255,34 +186,131 @@ mango-brain dashboard                  # Open in browser
 
 ---
 
-## 📁 Project Structure
+## Dashboard
+
+A visual control center with 6 pages:
+
+| Page | Purpose |
+|------|---------|
+| **Overview** | Health score, memory growth timeline, setup status, alerts |
+| **Setup** | Step-by-step initialization wizard with progress tracking |
+| **Memories** | Browse, search, filter, inspect individual memories |
+| **Graph** | Force-directed visualization of the memory network |
+| **Monitoring** | Health breakdown, prescriptions, elaboration history |
+| **Guide** | Complete in-app documentation |
+
+---
+
+## Quick Start
+
+### 1. Clone & Install
+
+```bash
+git clone https://github.com/Federico-Anastasi/mangobrain.git
+cd mangobrain
+
+python -m venv .venv
+# Windows
+.venv\Scripts\activate
+# Unix
+source .venv/bin/activate
+
+pip install -e .
+```
+
+### 2. Build Dashboard
+
+```bash
+cd dashboard && npm install && npm run build && cd ..
+```
+
+### 3. Initialize Your Project
+
+```bash
+mango-brain init --project myproject --path /path/to/your/project
+```
+
+This copies skills, agents, and rules into your project's `.claude/` directory and sets up the MCP configuration.
+
+### 4. Start the Server
+
+```bash
+mango-brain serve --api    # API + Dashboard on http://localhost:3101
+```
+
+### 5. Begin Memory Initialization
+
+In Claude Code, inside your project:
+
+```
+/init
+```
+
+The wizard guides you through 14 steps across 5 phases:
+documentation scan → codebase exploration → event import → chat extraction → graph elaboration.
+
+After initialization, your daily workflow is simply: `/discuss` → `/task` → repeat.
+
+---
+
+## Configuration
+
+```toml
+# mangobrain.toml
+
+[embedding]
+model = "auto"          # GPU → bge-large (1024d), CPU → bge-base (768d)
+device = "auto"         # auto-detects CUDA
+
+[retrieval]
+deep_threshold = 0.78
+quick_threshold = 0.85
+
+[decay]
+episodic = 0.01         # fast
+semantic = 0.002        # medium
+procedural = 0.001      # slow
+```
+
+## CLI
+
+```bash
+mango-brain serve              # MCP server (stdio)
+mango-brain serve --api        # API + dashboard
+mango-brain serve --all        # Both
+
+mango-brain init -p NAME --path PATH   # Initialize project
+mango-brain install --path PATH        # Install skills/agents/rules
+mango-brain status -p NAME             # Setup progress
+mango-brain doctor                     # System health check
+mango-brain dashboard                  # Open dashboard in browser
+```
+
+## Requirements
+
+- **Python** 3.11+
+- **PyTorch** 2.2+ (GPU optional — CPU works fine)
+- **Node.js** 18+ (for dashboard build)
+
+## Project Structure
 
 ```
 mangobrain/
 ├── server/           # Python MCP server + REST API
 ├── dashboard/        # React 19 + Vite + Tailwind
-├── skills/           # 7 Claude Code skills
-├── agents/           # 4 specialized agent prompts
-├── rules/            # 2 auto-loaded rules
-├── prompts/          # Init phase instructions + quality reference
+├── skills/           # 7 skills (/discuss, /task, /init, /memorize, /elaborate, /health-check, /smoke-test)
+├── agents/           # 4 agent prompts (analyzer, executor, verifier, mem-manager)
+├── rules/            # 2 auto-loaded rules (query strategy, workflow integration)
+├── prompts/          # Init phase instructions + memory quality reference
 ├── tests/            # Test suite
 ├── mangobrain.toml   # Configuration
-├── pyproject.toml    # Python package
-└── CLAUDE.md         # Self-knowledge for Claude Code
+└── pyproject.toml    # Python package
 ```
-
----
-
-## Requirements
-
-- **Python** ≥ 3.11
-- **PyTorch** ≥ 2.2 (GPU optional — CPU works fine)
-- **Node.js** ≥ 18 (for dashboard)
 
 ---
 
 <p align="center">
   <strong>Built by <a href="https://github.com/Federico-Anastasi">Mango</a></strong>
   <br/>
-  <sub>Because Claude deserves a brain that doesn't reset every session.</sub>
+  <sub>Because your AI pair-programmer shouldn't have amnesia.</sub>
 </p>
