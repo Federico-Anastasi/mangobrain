@@ -239,7 +239,7 @@ For ongoing maintenance: extract.md (post-session), elaborate.md (periodic)
 Given these memories from different phases:
 
 **Phase 1 (docs):**
-- M1: "All dates in MusicLabs use UTC. Never use local time."
+- M1: "All dates in MyProject use UTC. Never use local time."
 
 **Phase 2 (code):**
 - M2: "dateUtils.ts exports createUTCDateTime(), formatBookingTime(), formatBookingDate()"
@@ -272,10 +272,10 @@ Given these memories from different phases:
 From the same memories above, create:
 ```json
 {
-  "content": "MusicLabs date/timezone handling is the #1 source of bugs historically (3+ incidents). The core pattern: all date construction via Date.UTC(), all reading via getUTC*() methods, all formatting via dateUtils.ts. Violations (new Date(string), getDay(), setHours()) caused visible bugs in booking times and calendar views. After the third incident, all date handling was centralized in dateUtils.ts + calendarUtils.ts.",
+  "content": "MyProject date/timezone handling is the #1 source of bugs historically (3+ incidents). The core pattern: all date construction via Date.UTC(), all reading via getUTC*() methods, all formatting via dateUtils.ts. Violations (new Date(string), getDay(), setHours()) caused visible bugs in scheduling and calendar views. After the third incident, all date handling was centralized in dateUtils.ts + calendarUtils.ts.",
   "type": "semantic",
   "tags": ["pattern", "date", "timezone", "utc", "abstraction", "gotcha"],
-  "project": "musiclabs",
+  "project": "myproject",
   "relations": [
     {"target_query": "UTC date convention rule", "relation_type": "relates_to", "weight": 0.9},
     {"target_query": "dateUtils exports formatBookingTime", "relation_type": "relates_to", "weight": 0.8},
@@ -289,11 +289,9 @@ From the same memories above, create:
 ## Usage
 
 ```bash
-cd C:/Users/Mango/Desktop/Dev_FA/mangodev/mango-brain
-
 # First run (usually does 2-3 rounds)
-claude "Read prompts/init/05-elaborate-base.md and follow its instructions exactly. Project: musiclabs"
+claude "Read prompts/init/05-elaborate-base.md and follow its instructions exactly. Project: myproject"
 
 # Additional runs if needed (check final report)
-claude "Read prompts/init/05-elaborate-base.md and follow its instructions exactly. Project: musiclabs. Continue from where the last run stopped."
+claude "Read prompts/init/05-elaborate-base.md and follow its instructions exactly. Project: myproject. Continue from where the last run stopped."
 ```

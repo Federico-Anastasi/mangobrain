@@ -15,27 +15,27 @@ mango-brain/
 │   ├── retrieval.py  # Cosine similarity + graph propagation + knapsack
 │   ├── graph.py      # Typed adjacency matrix, PageRank-style propagation
 │   ├── decay.py      # Exponential decay by memory type
-│   ├── mcp_tools.py  # 14 MCP tools
+│   ├── mcp_tools.py  # 15 MCP tools
 │   ├── api_routes.py # REST endpoints for dashboard
-│   ├── cli.py        # CLI commands (serve, init, install, doctor)
-│   └── main.py       # Entry point (MCP stdio / API / both)
+│   ├── cli.py        # CLI commands (serve, init, install, doctor, status, dashboard)
+│   ├── main.py       # Entry point (MCP stdio / API / both)
+│   ├── skills/       # Claude Code skills (installed into target projects)
+│   │   ├── discuss/      # Brainstorm + memory-enhanced planning
+│   │   ├── task/         # Task execution with agents + memory
+│   │   ├── brain-init/   # Guided memory initialization (14 step)
+│   │   ├── memorize/     # End-of-session sync
+│   │   ├── elaborate/    # Memory consolidation
+│   │   ├── health-check/ # Diagnosis + optimization
+│   │   └── smoke-test/   # Query verification
+│   ├── agents/       # Agent prompts (spawned by skills)
+│   │   ├── analyzer.md   # Code exploration + remember
+│   │   ├── executor.md   # Implementation (no memory, 100% code)
+│   │   ├── verifier.md   # QA + remember for known issues
+│   │   └── mem-manager.md # Memory management at session close
+│   ├── rules/        # Auto-loaded rules (installed into target projects)
+│   └── prompts/      # Reference material for init phases
 ├── dashboard/        # React 19 + Vite + Tailwind
-│   └── src/pages/    # Overview, Setup, Memories, Graph, Monitoring, Guide
-├── skills/           # Claude Code skills (installed into target projects)
-│   ├── discuss/      # Brainstorm + memory-enhanced planning
-│   ├── task/         # Task execution with agents + memory
-│   ├── init/         # Guided memory initialization
-│   ├── memorize/     # End-of-session sync
-│   ├── elaborate/    # Memory consolidation
-│   ├── health-check/ # Diagnosis + optimization
-│   └── smoke-test/   # Query verification
-├── agents/           # Agent prompts (spawned by skills)
-│   ├── analyzer.md   # Code exploration + remember
-│   ├── executor.md   # Implementation (no memory, 100% code)
-│   ├── verifier.md   # QA + remember for known issues
-│   └── mem-manager.md # Memory management at session close
-├── rules/            # Auto-loaded rules (installed into target projects)
-├── prompts/          # Reference material for init phases
+│   └── src/pages/    # Overview, Setup, Remember, Memories, Graph, Monitoring, Guide
 ├── tests/            # Test suite
 ├── mangobrain.toml   # Configuration
 └── pyproject.toml    # Python package

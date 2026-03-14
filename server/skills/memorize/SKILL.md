@@ -39,20 +39,20 @@ Review the current conversation and produce a structured summary:
 - Blockers or open questions
 - Things to investigate next
 
-### Step 2 — Read the librarian prompt
+### Step 2 — Read the mem-manager agent prompt
 
-Read the file: `C:/Users/Mango/Desktop/Dev_FA/mangodev/mango-brain/prompts/integration/librarian.md`
+Read the mem-manager agent prompt from the MangoBrain package (installed via `mango-brain install`).
 
-This contains the full librarian workflow instructions.
+This contains the full mem-manager workflow instructions.
 
-### Step 3 — Spawn the librarian as sub-agent
+### Step 3 — Spawn the mem-manager as sub-agent
 
 Spawn a general-purpose sub-agent with the following prompt (fill in the variables):
 
 ```
-You are the librarian for project {PROJECT}.
+You are the mem-manager for project {PROJECT}.
 
-{INSERT FULL CONTENT OF librarian.md HERE}
+{INSERT FULL CONTENT OF mem-manager.md HERE}
 
 ## Input for this session
 
@@ -73,14 +73,14 @@ You are the librarian for project {PROJECT}.
 - project_path: {PROJECT_PATH}
 ```
 
-The librarian sub-agent will autonomously:
+The mem-manager sub-agent will autonomously:
 1. Create memories for significant work (memorize)
 2. Sync changed files with existing memories (sync_codebase + update_memory)
 3. Create WIP memories if needed (memorize with tag "state", "wip")
 
 ### Step 4 — Report results
 
-When the librarian completes, show the user a concise report:
+When the mem-manager completes, show the user a concise report:
 
 ```
 === Memory Sync Complete ===
@@ -90,12 +90,12 @@ File sincronizzati: N
 WIP registrato: si/no
 ```
 
-If the librarian encountered issues (e.g., stale memories it couldn't resolve, orphan files), report those too.
+If the mem-manager encountered issues (e.g., stale memories it couldn't resolve, orphan files), report those too.
 
 ## Notes
 
-- The librarian sub-agent does ALL the MangoBrain writes. The main agent only prepares the summary.
-- Keep the summary dense but complete. The librarian needs enough context to create good memories.
-- For discussion-only sessions (no code changes), the librarian still creates memories for decisions and insights.
-- The librarian follows the memory-definition.md quality standards: 2-5 lines, English, self-contained, atomic.
+- The mem-manager sub-agent does ALL the MangoBrain writes. The main agent only prepares the summary.
+- Keep the summary dense but complete. The mem-manager needs enough context to create good memories.
+- For discussion-only sessions (no code changes), the mem-manager still creates memories for decisions and insights.
+- The mem-manager follows the memory-definition.md quality standards: 2-5 lines, English, self-contained, atomic.
 - If the session was trivial (quick question, no decisions, no work), tell the user there's nothing worth memorizing and skip.

@@ -38,13 +38,13 @@ MangoBrain non e' un file da leggere all'inizio. E' un sistema di retrieval atti
 - Prima di creare un componente: quick query per verificare se esiste gia'
 
 **CLOSE** (fine task):
-Il main orchestrator spawna il **librarian** come sub-agent con:
+Il main orchestrator spawna il **mem-manager** come sub-agent con:
 - Summary del lavoro fatto
 - Lista file modificati (git diff)
 - Decisioni prese
 - WIP/blocker
 
-Il librarian autonomamente:
+Il mem-manager autonomamente:
 1. Crea memorie per il lavoro significativo (memorize)
 2. Sincronizza file cambiati con memorie esistenti (sync_codebase + update_memory)
 3. Registra WIP se presente (memorize con tag "state", "wip")
@@ -54,7 +54,7 @@ Il librarian autonomamente:
 Per sessioni senza /task (discussioni, esplorazioni, fix rapidi):
 - Usa `remember` durante la sessione come descritto sopra
 - A fine sessione, usa **/memorize** per sincronizzare il lavoro in memoria
-- /memorize prepara un summary e spawna il librarian
+- /memorize prepara un summary e spawna il mem-manager
 
 ## Manutenzione periodica
 
@@ -64,9 +64,9 @@ Per sessioni senza /task (discussioni, esplorazioni, fix rapidi):
 | Health check | Mensile | /health-check | Diagnosi struttura + contenuto, fix mirati |
 | Smoke test | Post-init, post-elaboration | /smoke-test | Verifica qualita' retrieval con query test |
 
-## Il librarian agent
+## Il mem-manager agent
 
-Il librarian e' un sub-agent specializzato nella gestione della memoria. Non e' un agente interattivo — viene spawnato dal main con un contesto preciso e opera autonomamente.
+Il mem-manager e' un sub-agent specializzato nella gestione della memoria. Non e' un agente interattivo — viene spawnato dal main con un contesto preciso e opera autonomamente.
 
 **Cosa fa:**
 - Crea memorie atomiche (2-5 righe, inglese, self-contained)

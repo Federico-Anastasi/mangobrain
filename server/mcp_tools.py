@@ -59,7 +59,7 @@ def register_tools(
         Args:
             query: Description of the task or question. Optional for mode="recent".
             mode: "deep" for session start, "quick" for mid-session, "recent" for temporal retrieval.
-            project: Filter by project name (e.g. "musiclabs"). None = search all.
+            project: Filter by project name (e.g. "myproject"). None = search all.
             budget: Override token budget. Default: deep=8000, quick=2000.
             session_id: Session ID for budget tracking (quick mode).
             limit: Number of recent memories to fetch (mode="recent" only, default 15).
@@ -752,7 +752,7 @@ def register_tools(
         Used by /health-check workflow.
 
         Args:
-            project: Project to diagnose (e.g. "musiclabs"). None = all.
+            project: Project to diagnose (e.g. "myproject"). None = all.
             project_path: Root path of the project codebase. If provided,
                 scans filesystem to detect content gaps accurately.
         """
@@ -823,7 +823,7 @@ def register_tools(
         The LLM session performs the intelligent extraction — this tool only prepares data.
 
         Args:
-            project: Project name (e.g. "musiclabs").
+            project: Project name (e.g. "myproject").
             project_path: Root path of the project.
         """
         from server.jsonl_parser import find_all_sessions

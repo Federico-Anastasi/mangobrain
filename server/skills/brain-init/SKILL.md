@@ -7,8 +7,8 @@ When setting up MangoBrain for a project that has no memories yet, or when resum
 
 ## Input
 The user provides:
-- **project**: project name (e.g., "mangolabs")
-- **project_path**: root path (e.g., "C:/Users/Mango/Desktop/Dev_FA/mangolabs")
+- **project**: project name (e.g., "myproject")
+- **project_path**: root path (e.g., "~/projects/myproject")
 
 If not provided, ask.
 
@@ -74,7 +74,7 @@ Based on which step is next, follow the appropriate logic:
 These steps have a `prompt_file` field in the setup_status response. The prompt file contains detailed instructions for that phase.
 
 1. Mark step as in_progress: `setup_status(project, action="update", phase="{phase}", step="{step}", status="in_progress")`
-2. Read the prompt file using the Read tool (path is relative to `C:/Users/Mango/Desktop/Dev_FA/mangodev/mango-brain/`)
+2. Read the prompt file using the Read tool (path is relative to the mango-brain package directory)
 3. Follow the instructions in the prompt file exactly
 4. When done, mark as completed: `setup_status(project, action="update", phase="{phase}", step="{step}", status="completed", result="{JSON with metrics}")`
 

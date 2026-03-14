@@ -42,7 +42,7 @@ Query formulation rules:
 - Keywords over natural language phrases
 - Always use proper names (component names, hook names, file names, service names)
 - Mix technical terms with domain terms
-- Example: `"BookingWizard localStorage state persistence gotcha"` not `"how does the booking wizard save state"`
+- Example: `"CheckoutWizard localStorage state persistence gotcha"` not `"how does the checkout wizard save state"`
 
 ### Step 3 — Explore Code
 Follow the task brief from Main. For each area:

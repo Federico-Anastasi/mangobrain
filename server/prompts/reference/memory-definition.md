@@ -28,7 +28,7 @@ Reason: embedding models (bge-large-en-v1.5) perform best on English text. Seman
 
 **One fact, one decision, one bug, one pattern = one memory.**
 
-This is the most critical quality attribute. Embedding-based retrieval works on semantic similarity. A memory about "booking wizard price conversion bug: cents vs euros double-division in BookingSidebar" will match a query about price bugs FAR better than a memory that lists 5 unrelated bugs.
+This is the most critical quality attribute. Embedding-based retrieval works on semantic similarity. A memory about "order wizard price conversion bug: cents vs dollars double-division in OrderSidebar" will match a query about price bugs FAR better than a memory that lists 5 unrelated bugs.
 
 **The granularity test:** If removing a sentence from the memory would make it about a different topic, that sentence should be its own memory.
 
@@ -43,7 +43,7 @@ A memory must be readable WITHOUT external context. It should not assume the rea
 **Bad:** "The fix was to use the UTC version instead."
 → Fix of what? UTC version of what? Instead of what?
 
-**Good:** "MusicLabs booking time display bug: getDay() returns local timezone day-of-week, causing bookings to show on the wrong day for users in non-UTC timezones. Fix: use getUTCDay() instead. This pattern applies to all Date getter methods — always use the UTC variant."
+**Good:** "MyProject scheduling time display bug: getDay() returns local timezone day-of-week, causing events to show on the wrong day for users in non-UTC timezones. Fix: use getUTCDay() instead. This pattern applies to all Date getter methods — always use the UTC variant."
 
 ---
 
@@ -55,17 +55,17 @@ A specific event that happened — a bug found, a decision made in a specific se
 **Decay:** fastest. Episodic memories lose relevance as the codebase evolves. A bug fixed 6 months ago may no longer be relevant if the component was rewritten.
 
 **Examples:**
-- "In the Feb-12 session, discovered that the booking sidebar double-divided the price (cents -> euros -> euros/100). Root cause: formatPrice() expected cents but received euros from the updated API."
+- "In the Feb-12 session, discovered that the order sidebar double-divided the price (cents -> euros -> euros/100). Root cause: formatPrice() expected cents but received euros from the updated API."
 - "Decision (2025-01): switched from REST to tRPC for internal admin API. Motivation: type safety across frontend/backend without manual OpenAPI sync."
 
 ### Semantic
-General knowledge, facts, architecture, patterns — true regardless of when. "MusicLabs uses PostgreSQL with Prisma ORM" is semantic. Conventions, rules, architecture descriptions, technology facts.
+General knowledge, facts, architecture, patterns — true regardless of when. "MyProject uses PostgreSQL with Prisma ORM" is semantic. Conventions, rules, architecture descriptions, technology facts.
 
 **Decay:** slowest. These remain valid until the architecture changes.
 
 **Examples:**
-- "MusicLabs frontend stack: React 18 + TypeScript + Vite + Tailwind CSS. Mobile-first approach, 90%+ users expected on mobile."
-- "All Reverbia API endpoints follow the pattern: /api/v1/{resource}. Auth via JWT in Authorization header. Validation via Zod schemas at the route level."
+- "MyProject frontend stack: React 18 + TypeScript + Vite + Tailwind CSS. Mobile-first approach, responsive design."
+- "All MyProject API endpoints follow the pattern: /api/v1/{resource}. Auth via JWT in Authorization header. Validation via Zod schemas at the route level."
 
 ### Procedural
 How-to knowledge, step-by-step processes, conventions to follow — "Always run docker-compose up -d before testing API locally" is procedural. These are instructions, not facts.
@@ -73,8 +73,8 @@ How-to knowledge, step-by-step processes, conventions to follow — "Always run 
 **Decay:** medium. Procedures change when tooling or workflow changes.
 
 **Examples:**
-- "To add a new API endpoint in MusicLabs: 1) Create route in backend/src/routes/{resource}.ts, 2) Add Zod validation schema, 3) Create service method in backend/src/services/, 4) Add route to router in index.ts. Always test with Postman collection first."
-- "MusicLabs price convention: API always returns and accepts cents (integer). Frontend formats to euros only for display using formatPrice(cents). Never store or transmit euros — only cents."
+- "To add a new API endpoint in MyProject: 1) Create route in backend/src/routes/{resource}.ts, 2) Add Zod validation schema, 3) Create service method in backend/src/services/, 4) Add route to router in index.ts. Always test with Postman collection first."
+- "MyProject price convention: API always returns and accepts cents (integer). Frontend formats to display currency only via formatPrice(cents). Never store or transmit display values — only cents."
 
 ---
 
@@ -179,7 +179,7 @@ Purpose: enables `sync_codebase()` to detect when the referenced file changes an
 
 ```
 code_signature: "exports: formatBookingTime(time), formatBookingDate(date, lang), createUTCDateTime(date, time)"
-code_signature: "hook: useBookingWizard(initialData) -> {step, setStep, data, updateData, reset}"
+code_signature: "hook: useCheckoutWizard(initialData) -> {step, setStep, data, updateData, reset}"
 code_signature: "model: Booking {id, studioId, userId, startTime, endTime, status, paymentId}"
 ```
 
@@ -202,7 +202,7 @@ Purpose: enables `sync_codebase()` to detect when exports/signatures change, ind
 - **Generic**: "The booking system has had many bugs" — which bugs? why? what to avoid?
 - **Aggregated**: "Fixed bugs in booking wizard, room detail page, payment flow, and calendar" — this is 4 memories compressed into 1, none of which is retrievable individually
 - **Too long**: More than 5 lines. Split it.
-- **Raw code**: "File: BookingWizardPage.tsx, line 42, uses useState with lazy initializer" — this is a code observation, not knowledge
+- **Raw code**: "File: CheckoutWizardPage.tsx, line 42, uses useState with lazy initializer" — this is a code observation, not knowledge
 - **Orphaned**: No relations, no file_path, vague tags — will never be found by retrieval
 - **Duplicative**: Says the same thing as another memory in different words
 - **Filler-heavy**: "It should be noted that an important consideration is that..." — cut to the fact
@@ -232,11 +232,11 @@ For each memory, verify:
 ### Good: Bug root cause (episodic)
 ```json
 {
-  "content": "MusicLabs booking price display bug (2025-01): BookingSidebar showed price divided by 100 twice. Root cause: formatPrice() expects cents (integer), but the BookingSidebar was pre-dividing to euros before calling it. API contract: all prices in cents. Lesson: never convert cents->euros before passing to formatPrice().",
+  "content": "MyProject order price display bug (2025-01): OrderSidebar showed price divided by 100 twice. Root cause: formatPrice() expects cents (integer), but the OrderSidebar was pre-dividing before calling it. API contract: all prices in cents. Lesson: never convert cents before passing to formatPrice().",
   "type": "episodic",
-  "project": "musiclabs",
-  "tags": ["bug", "booking", "price", "gotcha"],
-  "file_path": "frontend/src/components/booking/BookingSidebar.tsx",
+  "project": "myproject",
+  "tags": ["bug", "order", "price", "gotcha"],
+  "file_path": "src/components/order/OrderSidebar.tsx",
   "relations": [
     {"target_query": "formatPrice cents euros conversion utility", "relation_type": "depends_on", "weight": 0.8},
     {"target_query": "API price convention cents integer", "relation_type": "caused_by", "weight": 0.7}
@@ -247,9 +247,9 @@ For each memory, verify:
 ### Good: Convention (semantic)
 ```json
 {
-  "content": "MusicLabs uses UTC everywhere for dates. Construction: Date.UTC(year, month-1, day). Reading: getUTCHours(), getUTCDay(). Local time methods (setHours, getDay, new Date(string)) caused 12+ timezone bugs across frontend and backend. All date formatting goes through dateUtils.ts.",
+  "content": "MyProject uses UTC everywhere for dates. Construction: Date.UTC(year, month-1, day). Reading: getUTCHours(), getUTCDay(). Local time methods (setHours, getDay, new Date(string)) caused multiple timezone bugs across frontend and backend. All date formatting goes through dateUtils.ts.",
   "type": "semantic",
-  "project": "musiclabs",
+  "project": "myproject",
   "tags": ["convention", "date", "timezone", "utc"],
   "relations": [
     {"target_query": "dateUtils exports formatBookingTime createUTCDateTime", "relation_type": "relates_to", "weight": 0.8}
@@ -260,12 +260,12 @@ For each memory, verify:
 ### Good: Reference (semantic)
 ```json
 {
-  "content": "MusicLabs dateUtils.ts (frontend/src/lib/dateUtils.ts): exports formatBookingTime(time) — formats as 'HH:mm' using UTC; formatBookingDate(date, lang) — locale-aware '15 gennaio 2026'; createUTCDateTime(date, time) — combines date+time into UTC Date. All functions use UTC internally. Accepts Date objects or ISO strings.",
+  "content": "MyProject dateUtils.ts (src/lib/dateUtils.ts): exports formatDateTime(date) — formats as 'YYYY-MM-DD HH:mm' using UTC; formatDisplayDate(date, lang) — locale-aware date display; createUTCDateTime(date, time) — combines date+time into UTC Date. All functions use UTC internally.",
   "type": "semantic",
-  "project": "musiclabs",
+  "project": "myproject",
   "tags": ["reference", "utility", "date", "frontend"],
-  "file_path": "frontend/src/lib/dateUtils.ts",
-  "code_signature": "exports: formatBookingTime(time), formatBookingDate(date, lang), createUTCDateTime(date, time)",
+  "file_path": "src/lib/dateUtils.ts",
+  "code_signature": "exports: formatDateTime(date), formatDisplayDate(date, lang), createUTCDateTime(date, time)",
   "relations": [
     {"target_query": "UTC date convention timezone pattern", "relation_type": "depends_on", "weight": 0.8},
     {"target_query": "dateLocales getDateFnsLocale multilingual", "relation_type": "co_occurs", "weight": 0.6}
@@ -276,9 +276,9 @@ For each memory, verify:
 ### Good: Process (procedural)
 ```json
 {
-  "content": "MusicLabs price handling convention: API always returns and accepts cents (integer). Frontend displays euros only via formatPrice(cents). Never store, transmit, or calculate with euros — only cents. When creating a price: Math.round(euros * 100). When displaying: formatPrice(cents) handles the /100 + locale formatting.",
+  "content": "MyProject price handling convention: API always returns and accepts cents (integer). Frontend displays currency only via formatPrice(cents). Never store, transmit, or calculate with display values — only cents. When creating a price: Math.round(amount * 100). When displaying: formatPrice(cents) handles the /100 + locale formatting.",
   "type": "procedural",
-  "project": "musiclabs",
+  "project": "myproject",
   "tags": ["convention", "price", "money", "api"],
   "relations": [
     {"target_query": "formatPrice utility function money display", "relation_type": "relates_to", "weight": 0.8},
@@ -301,7 +301,7 @@ Four topics compressed. None is individually retrievable. Split into 4 memories.
 
 ### Bad: Raw code observation
 ```
-"File: BookingWizardPage.tsx, line 42, uses useState with lazy initializer."
+"File: CheckoutWizardPage.tsx, line 42, uses useState with lazy initializer."
 ```
 This is a code fact, not knowledge. Extract the WHY: why lazy initializer? What happens without it?
 
@@ -313,6 +313,6 @@ Remove the conversation wrapper. Just state the knowledge.
 
 ### Bad: Too long (>5 lines)
 ```
-"MusicLabs uses React 18 with TypeScript and Vite for the frontend build system. Tailwind CSS is used for styling with a mobile-first approach. The backend runs on Node.js 20 with Express and uses Prisma as the ORM connecting to PostgreSQL 16. Redis 7 is used for caching and session storage. Docker containerizes everything with Nginx as a reverse proxy. There are three environments: local development, a test server on Hetzner CX23, and production on Hetzner CX33. The CI/CD pipeline runs on GitHub Actions."
+"MyProject uses React 18 with TypeScript and Vite for the frontend build system. Tailwind CSS is used for styling with a mobile-first approach. The backend runs on Node.js 20 with Express and uses Prisma as the ORM connecting to PostgreSQL 16. Redis 7 is used for caching and session storage. Docker containerizes everything with Nginx as a reverse proxy. There are three environments: local development, staging, and production. The CI/CD pipeline runs on GitHub Actions."
 ```
 This is 7+ facts compressed. Split into: frontend stack, backend stack, database+cache, infrastructure, environments, CI/CD.

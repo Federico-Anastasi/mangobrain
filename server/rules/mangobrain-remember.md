@@ -10,7 +10,7 @@ Usalo spesso, non solo all'inizio del task. Le memorie contengono gotcha, patter
 - **Quando trovi un bug**: quick query per capire se e' un pattern noto
 - **Prima di creare un componente/utility**: quick query per verificare se esiste gia' qualcosa di simile
 - **Quando prendi una decisione architetturale**: quick query per capire se ci sono precedenti
-- **Fine task**: remember(mode="recent") per verificare WIP e contesto da passare al librarian
+- **Fine task**: remember(mode="recent") per verificare WIP e contesto da passare al mem-manager
 
 ## Strategia multi-query (inizio task)
 
@@ -80,11 +80,11 @@ remember(query="[nomi file, componenti, concetti dell'area]", mode="quick", proj
 remember(query="[keyword del bug + area + pattern]", mode="quick", project="{PROJECT}")
 ```
 
-### Fine task / pre-librarian
+### Fine task / pre-mem-manager
 ```
 remember(mode="recent", project="{PROJECT}")
 ```
-Verifica WIP e contesto da passare al librarian per il sync.
+Verifica WIP e contesto da passare al mem-manager per il sync.
 
 ## Esempi reali
 
@@ -92,7 +92,7 @@ Verifica WIP e contesto da passare al librarian per il sync.
 ```
 deep:  "booking wizard UX fix price bug mobile layout"
 quick: "formatPrice cents euros conversion serializeBooking gotcha"
-quick: "BookingWizard steps BookingPaymentStep BookingSummaryStep"
+quick: "OrderWizard steps PaymentStep SummaryStep"
 ```
 
 ### Task: "Refactor profilo + pagamenti condivisi"

@@ -21,8 +21,8 @@ Chat sessions can be very large (100KB+ each). **Do NOT try to process all sessi
 ### Step 1 — Setup
 
 Ask the user for:
-- **project**: project name (e.g., "musiclabs")
-- **project_path**: root path (e.g., "C:/Users/Mango/Desktop/Dev_FA/musiclabs")
+- **project**: project name (e.g., "myproject")
+- **project_path**: root path (e.g., "~/projects/myproject")
 - **batch**: which sessions to process (e.g., "first batch", "next batch", "sessions 10-15", or "all remaining")
 
 Call `init_project(project, project_path)` to get the session list with sizes and dates.
@@ -233,11 +233,9 @@ Since this phase requires multiple runs:
 ## Usage
 
 ```bash
-cd C:/Users/Mango/Desktop/Dev_FA/mangodev/mango-brain
-
 # First batch
-claude "Read prompts/init/04-chat-base.md and follow its instructions exactly. Project: musiclabs, project_path: C:/Users/Mango/Desktop/Dev_FA/musiclabs. Process the first batch."
+claude "Read prompts/init/04-chat-base.md and follow its instructions exactly. Project: myproject, project_path: ~/projects/myproject. Process the first batch."
 
 # Subsequent batches (repeat until all done)
-claude "Read prompts/init/04-chat-base.md and follow its instructions exactly. Project: musiclabs, project_path: C:/Users/Mango/Desktop/Dev_FA/musiclabs. Process the next batch."
+claude "Read prompts/init/04-chat-base.md and follow its instructions exactly. Project: myproject, project_path: ~/projects/myproject. Process the next batch."
 ```

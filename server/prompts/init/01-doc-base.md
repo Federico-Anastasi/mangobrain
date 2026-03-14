@@ -14,15 +14,15 @@ You have access to MangoBrain MCP tools.
 
 Bad (too compressed):
 ```
-"Reverbia uses React 18 + TypeScript + Vite + Tailwind (frontend), Node.js + Express + Prisma + PostgreSQL + Redis (backend), Docker + Nginx (infra). It's a booking platform with 4 roles."
+"MyApp uses React 18 + TypeScript + Vite + Tailwind (frontend), Node.js + Express + Prisma + PostgreSQL + Redis (backend), Docker + Nginx (infra). It's a SaaS platform with 3 roles."
 ```
 
 Good (granular):
 ```
-Memory 1: "Reverbia frontend stack: React 18 + TypeScript + Vite + Tailwind CSS. Mobile-first approach, 90%+ users on mobile."
-Memory 2: "Reverbia backend stack: Node.js 20 + Express + Prisma ORM + PostgreSQL 16 + Redis 7."
-Memory 3: "Reverbia infrastructure: Docker + Nginx reverse proxy. 3 environments: local dev, test (Hetzner CX23), prod (Hetzner CX33)."
-Memory 4: "Reverbia has 4 user roles: USER, OWNER, TEACHER, ADMIN. Each has separate dashboard sections."
+Memory 1: "MyApp frontend stack: React 18 + TypeScript + Vite + Tailwind CSS. Mobile-first approach, responsive design."
+Memory 2: "MyApp backend stack: Node.js 20 + Express + Prisma ORM + PostgreSQL 16 + Redis 7."
+Memory 3: "MyApp infrastructure: Docker + Nginx reverse proxy. 3 environments: local dev, staging, production."
+Memory 4: "MyApp has 3 user roles: USER, ADMIN, MANAGER. Each has separate dashboard sections."
 ```
 
 **A comprehensive CLAUDE.md + rules set should produce 40-80+ memories, not 15-20.** Each section, each rule, each convention, each pattern, each gotcha = its own memory. When in doubt, split.
@@ -49,8 +49,8 @@ If you finish with fewer than the lower bound, you are being too aggressive with
 ### Step 1 — Setup
 
 Ask the user for:
-- **project**: project name (e.g., "musiclabs")
-- **project_path**: root path (e.g., "C:/Users/Mango/Desktop/Dev_FA/musiclabs")
+- **project**: project name (e.g., "myproject")
+- **project_path**: root path (e.g., "~/projects/myproject")
 - **additional_docs**: (optional) paths to extra documentation files to include
 
 Call `init_project(project, project_path)` to get the project overview. This returns paths to rules files (not content).
@@ -277,6 +277,5 @@ Extract them as episodic memories tagged with `["wip", "planned"]`. They capture
 ## Usage
 
 ```bash
-cd C:/Users/Mango/Desktop/Dev_FA/mangodev/mango-brain
-claude "Read prompts/init/01-doc-base.md and follow its instructions exactly. Project: musiclabs, project_path: C:/Users/Mango/Desktop/Dev_FA/musiclabs"
+claude "Read prompts/init/01-doc-base.md and follow its instructions exactly. Project: myproject, project_path: ~/projects/myproject"
 ```

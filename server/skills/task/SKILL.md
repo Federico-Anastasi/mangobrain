@@ -208,12 +208,12 @@ BAD:  "problems with the booking wizard"
 #### Example: Memory Retrieval for Task
 
 ```
-Task: "Fix price display bug in booking sidebar"
+Task: "Fix price display bug in order sidebar"
 
 Main does:
-  1. deep:  remember("booking sidebar price display bug fix UX mobile", mode="deep", project="musiclabs")
-  2. quick: remember("formatPrice cents euros conversion formatMoneyValue", mode="quick", project="musiclabs")
-  3. quick: remember("BookingSidebar BookingPaymentStep price calculation", mode="quick", project="musiclabs")
+  1. deep:  remember("order sidebar price display bug fix UX mobile", mode="deep", project="{PROJECT}")
+  2. quick: remember("formatPrice cents conversion formatMoneyValue", mode="quick", project="{PROJECT}")
+  3. quick: remember("OrderSidebar PaymentStep price calculation", mode="quick", project="{PROJECT}")
 
 Results: ~32 memories covering price patterns, known gotchas, sidebar architecture.
 Main filters high-relevance (>0.7) and passes as context to analyzer.
@@ -812,50 +812,50 @@ Phase: CLOSE
 ## Full Example: Text Input Task
 
 ```
-User: /task Fix price display showing cents instead of euros in booking sidebar
+User: /task Fix price display showing cents instead of dollars in order sidebar
 
 PHASE 1: INTAKE
   Task is clear. No ambiguity. Proceed.
 
 PHASE 2: ANALYZE
   Main:
-    remember("booking sidebar price display cents euros bug", mode="deep", project="musiclabs")
-    remember("formatPrice formatMoneyValue cents conversion", mode="quick", project="musiclabs")
-    remember("BookingSidebar BookingPaymentStep price", mode="quick", project="musiclabs")
+    remember("order sidebar price display cents dollars bug", mode="deep", project="{PROJECT}")
+    remember("formatPrice formatMoneyValue cents conversion", mode="quick", project="{PROJECT}")
+    remember("OrderSidebar PaymentStep price calculation", mode="quick", project="{PROJECT}")
 
     Memory returns:
     - "Price double-division bug: formatMoneyValue divides by 100, but some callers
-       already pass euros. Check if caller passes cents or euros."
-    - "BookingSidebar.tsx uses formatPrice from lib/format.ts"
+       already pass dollars. Check if caller passes cents or dollars."
+    - "OrderSidebar.tsx uses formatPrice from lib/format.ts"
 
   Spawn analyzer:
     model: "sonnet"
     tools: [Read, Grep, Glob, mcp__mango-brain__remember]
     Context: Pass memory findings + task description
-    Task: Find where price is displayed in BookingSidebar, trace data flow
+    Task: Find where price is displayed in OrderSidebar, trace data flow
 
   Analyzer returns:
-    - BookingSidebar.tsx:42 calls formatPrice(booking.price)
-    - booking.price comes from API as cents (integer)
+    - OrderSidebar.tsx:42 calls formatPrice(order.price)
+    - order.price comes from API as cents (integer)
     - formatPrice divides by 100 (correct)
-    - BUT BookingSidebar also calls formatMoneyValue which ALSO divides by 100
+    - BUT OrderSidebar also calls formatMoneyValue which ALSO divides by 100
     - Double division: price / 100 / 100 = wrong display
 
 PHASE 3: PLAN
-  PLAN for: Fix price double-division in BookingSidebar
+  PLAN for: Fix price double-division in OrderSidebar
 
   Memory insights applied:
   - Known pattern: double-division bug (memory confirms this is recurring)
 
   Atomic Tasks:
-  1. Fix BookingSidebar.tsx: Use formatPrice OR formatMoneyValue, not both
+  1. Fix OrderSidebar.tsx: Use formatPrice OR formatMoneyValue, not both
 
   Agent Distribution:
   - 1 executor: Task 1 (~5k tokens)
 
   Estimated total: 1 agent
 
-  "I'll fix the double-division in BookingSidebar.tsx. Proceed? (ok/modify/stop)"
+  "I'll fix the double-division in OrderSidebar.tsx. Proceed? (ok/modify/stop)"
 
   User: ok
 
@@ -864,7 +864,7 @@ PHASE 4: EXECUTE
     model: "sonnet"
     tools: [Read, Edit, Write, Bash]
     Context: analyzer findings + memory warning about double-division
-    Task: Fix BookingSidebar.tsx line 42
+    Task: Fix OrderSidebar.tsx line 42
 
   Executor: Success. Removed redundant formatMoneyValue call.
 
@@ -875,7 +875,7 @@ PHASE 5: VERIFY
     Task: Build + test + check price displays correctly
 
   Verifier:
-    remember("build test booking price", mode="quick", project="musiclabs")
+    remember("build test order price", mode="quick", project="{PROJECT}")
     Build: PASS
     Tests: 24 passed / 0 failed
     Overall: PASS
@@ -888,15 +888,15 @@ PHASE 6: CLOSE
     Task: Memorize fix, sync changed file
 
   mem-manager:
-    - memorize(): "BookingSidebar double-division fix: booking.price from API is
+    - memorize(): "OrderSidebar double-division fix: order.price from API is
       in cents. Use formatPrice() which divides by 100 once. Do NOT chain
       formatMoneyValue() after formatPrice() — causes double division (price/10000)."
-    - sync_codebase(["frontend/src/components/BookingSidebar.tsx"], project="musiclabs")
+    - sync_codebase(["src/components/OrderSidebar.tsx"], project="{PROJECT}")
     - No WIP (task complete)
 
 SUMMARY:
-  Task: Fix price double-division in BookingSidebar
-  Files modified: BookingSidebar.tsx
+  Task: Fix price double-division in OrderSidebar
+  Files modified: OrderSidebar.tsx
   Verification: PASS (build OK, 24 tests passed)
   Memory: 1 memory created, 1 file synced
 ```

@@ -57,8 +57,8 @@ Create one memory per **significant shared artifact**. Focus on things that mult
 ### Step 1 — Setup
 
 Ask the user for:
-- **project**: project name (e.g., "musiclabs")
-- **project_path**: root path (e.g., "C:/Users/Mango/Desktop/Dev_FA/musiclabs")
+- **project**: project name (e.g., "myproject")
+- **project_path**: root path (e.g., "~/projects/myproject")
 
 Call `init_project(project, project_path)` to get the project overview.
 
@@ -231,12 +231,12 @@ Call `memorize()` in batches of 15-20 memories, `source="extraction"`.
 Example memorize call:
 ```json
 {
-  "content": "MusicLabs dateUtils.ts (frontend/src/lib/dateUtils.ts): exports formatBookingTime(time) — formats as 'HH:mm' using UTC; formatBookingDate(date, lang) — locale-aware '15 gennaio 2026'; createUTCDateTime(date, time) — combines date+time into UTC Date. All functions use UTC internally. Accepts Date objects or ISO strings.",
+  "content": "MyProject dateUtils.ts (src/lib/dateUtils.ts): exports formatDateTime(date) — formats as 'YYYY-MM-DD HH:mm' using UTC; formatDisplayDate(date, lang) — locale-aware '15 January 2026'; createUTCDateTime(date, time) — combines date+time into UTC Date. All functions use UTC internally.",
   "type": "semantic",
-  "project": "musiclabs",
+  "project": "myproject",
   "tags": ["reference", "utility", "date", "frontend"],
-  "file_path": "frontend/src/lib/dateUtils.ts",
-  "code_signature": "exports: formatBookingTime(time), formatBookingDate(date, lang), createUTCDateTime(date, time)"
+  "file_path": "src/lib/dateUtils.ts",
+  "code_signature": "exports: formatDateTime(date), formatDisplayDate(date, lang), createUTCDateTime(date, time)"
 }
 ```
 
@@ -272,16 +272,16 @@ Next: run Phase 3 (03-event-base.md) for existing knowledge import
 
 **Too compressed** (BAD):
 ```
-"MusicLabs has dateUtils, calendarUtils, bookingCalculations, queryKeys, api, and bookingStorage utility files."
+"MyProject has dateUtils, calendarUtils, priceCalculations, queryKeys, api, and storageHelpers utility files."
 ```
 
 **Right granularity** (GOOD):
 ```
-Memory 1: "MusicLabs dateUtils.ts (frontend/src/lib/dateUtils.ts): exports formatBookingTime(time) — formats as 'HH:mm' using UTC; formatBookingDate(date, lang) — '15 gennaio 2026'; createUTCDateTime(date, time) — combines date+time into UTC Date. All functions use UTC internally."
+Memory 1: "MyProject dateUtils.ts (src/lib/dateUtils.ts): exports formatDateTime(date) — formats as 'YYYY-MM-DD HH:mm' using UTC; formatDisplayDate(date, lang) — locale-aware display; createUTCDateTime(date, time) — combines date+time into UTC Date. All functions use UTC internally."
 
-Memory 2: "MusicLabs dateLocales.ts (frontend/src/lib/dateLocales.ts): exports getDateFnsLocale(lang) — returns date-fns Locale for it/es/en; getIntlLocale(lang) — returns Intl locale string ('it-IT', 'es-ES', 'en-GB'). Used by dateUtils for multilingual date formatting."
+Memory 2: "MyProject dateLocales.ts (src/lib/dateLocales.ts): exports getDateFnsLocale(lang) — returns date-fns Locale for supported languages; getIntlLocale(lang) — returns Intl locale string. Used by dateUtils for multilingual date formatting."
 
-Memory 3: "MusicLabs date handling toolkit: dateUtils.ts + dateLocales.ts + calendarUtils.ts work together. dateUtils for formatting/construction, dateLocales for i18n, calendarUtils for calendar-specific logic (overlap detection, column layout). All enforce UTC-only pattern."
+Memory 3: "MyProject date handling toolkit: dateUtils.ts + dateLocales.ts + calendarUtils.ts work together. dateUtils for formatting/construction, dateLocales for i18n, calendarUtils for calendar-specific logic (overlap detection, layout). All enforce UTC-only pattern."
 ```
 
 Each file gets its own memory. Cross-cutting patterns get an additional abstraction memory.
@@ -291,6 +291,5 @@ Each file gets its own memory. Cross-cutting patterns get an additional abstract
 ## Usage
 
 ```bash
-cd C:/Users/Mango/Desktop/Dev_FA/mangodev/mango-brain
-claude "Read prompts/init/02-code-base.md and follow its instructions exactly. Project: musiclabs, project_path: C:/Users/Mango/Desktop/Dev_FA/musiclabs"
+claude "Read prompts/init/02-code-base.md and follow its instructions exactly. Project: myproject, project_path: ~/projects/myproject"
 ```

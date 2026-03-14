@@ -167,10 +167,10 @@ quick queries cover 3-4 different clusters.
 
 **Example memory bootstrap for "add Google OAuth to login"**:
 ```
-remember(mode="recent", project="MusicLabs")
-remember(query="OAuth Google login authentication flow JWT session", mode="deep", project="MusicLabs")
-remember(query="LoginPage authStore JWT localStorage token", mode="quick", project="MusicLabs")
-remember(query="User model Prisma schema migration provider", mode="quick", project="MusicLabs")
+remember(mode="recent", project="{PROJECT}")
+remember(query="OAuth Google login authentication flow JWT session", mode="deep", project="{PROJECT}")
+remember(query="LoginPage authStore JWT localStorage token", mode="quick", project="{PROJECT}")
+remember(query="User model Prisma schema migration provider", mode="quick", project="{PROJECT}")
 ```
 
 #### Step 1B: Clarifying Questions
@@ -993,7 +993,7 @@ actual project identifier. Determine it by:
 2. Checking `.claude/rules/` for project-specific configuration
 3. Using the directory name as fallback
 
-Common projects: `MusicLabs`, `MangoLabs`, `MangoBrain`
+Determine the project name from CLAUDE.md, .claude/rules/, or the directory name.
 
 The project name must match what is stored in MangoBrain. Check with
 `remember(mode="recent", project="{PROJECT}")` -- if it returns results,

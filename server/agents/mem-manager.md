@@ -26,7 +26,7 @@ Main provides:
 - **changed_files**: List of modified file paths (relative to project root)
 - **decisions**: Key architectural/design decisions made (optional)
 - **wip**: Incomplete work, blockers, notes for next session (optional)
-- **project**: Project name (e.g., "musiclabs", "mangolabs")
+- **project**: Project name (e.g., "myproject", "my-saas-app")
 - **project_path**: Absolute path to project root
 
 ---
@@ -207,7 +207,7 @@ memory_sync:
   created:
     - type: episodic
       tags: ["bug", "fix", "booking"]
-      summary: "Fixed price double-division in BookingSidebar"
+      summary: "Fixed price double-division in OrderSidebar"
     - type: semantic
       tags: ["reference", "utility", "dates"]
       summary: "New dateUtils.ts with UTC formatting functions"
