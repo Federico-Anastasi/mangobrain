@@ -108,34 +108,38 @@ export default function Monitoring() {
     );
   }
 
-  const hb = adv.health_breakdown;
+  const hb = adv.health_breakdown ?? { graph_connectivity: 0, edge_diversity: 0, elaboration_depth: 0, access_balance: 0, component_unity: 0 };
+  const gr = adv.graph ?? { degree_histogram: {}, edge_types: {}, avg_degree: 0, median_degree: 0, typed_edge_ratio: 0, connected_components: 0, largest_component_pct: 0, has_contradicts: false, has_supersedes: false, hubs_10_plus: 0, under_connected_0_1: 0 };
+  const acc = adv.access ?? { gini_coefficient: 0, never_accessed: 0, never_accessed_pct: 0, total_accesses: 0, top_10_access_counts: [] };
+  const elab = adv.elaboration ?? { avg_count: 0, distribution: {} };
+  const mq = adv.memory_quality ?? { type_distribution: {}, decay_distribution: {}, avg_tokens: 0, min_tokens: 0, max_tokens: 0 };
 
   // Radar data for health breakdown
   const radarData = [
-    { metric: "Graph", value: hb.graph_connectivity * 100, fullMark: 100 },
-    { metric: "Edge Types", value: hb.edge_diversity * 100, fullMark: 100 },
-    { metric: "Elaboration", value: hb.elaboration_depth * 100, fullMark: 100 },
-    { metric: "Access Balance", value: hb.access_balance * 100, fullMark: 100 },
-    { metric: "Unity", value: hb.component_unity * 100, fullMark: 100 },
+    { metric: "Graph", value: (hb.graph_connectivity ?? 0) * 100, fullMark: 100 },
+    { metric: "Edge Types", value: (hb.edge_diversity ?? 0) * 100, fullMark: 100 },
+    { metric: "Elaboration", value: (hb.elaboration_depth ?? 0) * 100, fullMark: 100 },
+    { metric: "Access Balance", value: (hb.access_balance ?? 0) * 100, fullMark: 100 },
+    { metric: "Unity", value: (hb.component_unity ?? 0) * 100, fullMark: 100 },
   ];
 
   // Degree histogram
-  const degreeData = Object.entries(adv.graph.degree_histogram).map(([k, v]) => ({
+  const degreeData = Object.entries(gr.degree_histogram ?? {}).map(([k, v]) => ({
     edges: k, count: v,
   }));
 
   // Edge type pie
-  const edgeTypeData = Object.entries(adv.graph.edge_types).map(([k, v]) => ({
+  const edgeTypeData = Object.entries(gr.edge_types ?? {}).map(([k, v]) => ({
     name: k, value: v,
   }));
 
   // Elaboration depth distribution
-  const elabDepthData = Object.entries(adv.elaboration.distribution)
+  const elabDepthData = Object.entries(elab.distribution ?? {})
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([k, v]) => ({ depth: k, count: v }));
 
   // Decay distribution
-  const decayData = Object.entries(adv.memory_quality.decay_distribution).map(([k, v]) => ({
+  const decayData = Object.entries(mq.decay_distribution ?? {}).map(([k, v]) => ({
     name: k, value: v,
   }));
 
@@ -152,23 +156,23 @@ export default function Monitoring() {
     edges: e.new_edges,
   }));
 
-  // Gini visualization: Lorenz curve approximation
-  const gini = adv.access.gini_coefficient;
+  // Gini
+  const gini = acc.gini_coefficient ?? 0;
 
   // Issues from health breakdown
   const issues: { severity: string; message: string; icon: React.ReactNode }[] = [];
-  if (hb.access_balance < 0.3)
+  if ((hb.access_balance ?? 0) < 0.3)
     issues.push({ severity: "warning", message: `Access Gini ${gini.toFixed(2)} — retrieval heavily biased toward few memories`, icon: <Eye className="w-4 h-4" /> });
-  if (hb.edge_diversity < 0.3)
-    issues.push({ severity: "warning", message: `Only ${Math.round(adv.graph.typed_edge_ratio * 100)}% typed edges — graph too generic (relates_to dominant)`, icon: <GitFork className="w-4 h-4" /> });
-  if (!adv.graph.has_contradicts)
+  if ((hb.edge_diversity ?? 0) < 0.3)
+    issues.push({ severity: "warning", message: `Only ${Math.round((gr.typed_edge_ratio ?? 0) * 100)}% typed edges — graph too generic (relates_to dominant)`, icon: <GitFork className="w-4 h-4" /> });
+  if (!gr.has_contradicts)
     issues.push({ severity: "info", message: "No contradicts edges — elaboration should identify conflicting memories", icon: <Info className="w-4 h-4" /> });
-  if (!adv.graph.has_supersedes)
+  if (!gr.has_supersedes)
     issues.push({ severity: "info", message: "No supersedes edges — older memories may shadow newer ones", icon: <Info className="w-4 h-4" /> });
-  if (adv.graph.hubs_10_plus > 0)
-    issues.push({ severity: "info", message: `${adv.graph.hubs_10_plus} hub memories (10+ edges) — potential noise floor sources`, icon: <Layers className="w-4 h-4" /> });
-  if (adv.access.never_accessed_pct > 40)
-    issues.push({ severity: "warning", message: `${adv.access.never_accessed} memories (${adv.access.never_accessed_pct}%) never accessed`, icon: <Eye className="w-4 h-4" /> });
+  if ((gr.hubs_10_plus ?? 0) > 0)
+    issues.push({ severity: "info", message: `${gr.hubs_10_plus} hub memories (10+ edges) — potential noise floor sources`, icon: <Layers className="w-4 h-4" /> });
+  if ((acc.never_accessed_pct ?? 0) > 40)
+    issues.push({ severity: "warning", message: `${acc.never_accessed} memories (${acc.never_accessed_pct}%) never accessed`, icon: <Eye className="w-4 h-4" /> });
 
   return (
     <div className="space-y-6">
@@ -208,12 +212,12 @@ export default function Monitoring() {
 
       {/* ─── Row 2: Key Metrics ─── */}
       <div className="grid grid-cols-6 gap-3">
-        <StatCard label="Avg Degree" value={adv.graph.avg_degree} sub={`median: ${adv.graph.median_degree}`} />
-        <StatCard label="Typed Edges" value={`${Math.round(adv.graph.typed_edge_ratio * 100)}%`} sub={`${adv.total_edges - (adv.graph.edge_types.relates_to ?? 0)} / ${adv.total_edges}`} color={adv.graph.typed_edge_ratio > 0.3 ? "text-green-400" : "text-yellow-400"} />
+        <StatCard label="Avg Degree" value={gr.avg_degree} sub={`median: ${gr.median_degree}`} />
+        <StatCard label="Typed Edges" value={`${Math.round(gr.typed_edge_ratio * 100)}%`} sub={`${adv.total_edges - (gr.edge_types.relates_to ?? 0)} / ${adv.total_edges}`} color={gr.typed_edge_ratio > 0.3 ? "text-green-400" : "text-yellow-400"} />
         <StatCard label="Gini Index" value={gini.toFixed(3)} sub={gini < 0.5 ? "balanced" : gini < 0.7 ? "moderate bias" : "high bias"} color={gini < 0.5 ? "text-green-400" : gini < 0.7 ? "text-yellow-400" : "text-red-400"} />
-        <StatCard label="Components" value={adv.graph.connected_components} sub={`largest: ${adv.graph.largest_component_pct}%`} color={adv.graph.connected_components <= 2 ? "text-green-400" : "text-yellow-400"} />
-        <StatCard label="Avg Tokens" value={adv.memory_quality.avg_tokens} sub={`${adv.memory_quality.min_tokens}–${adv.memory_quality.max_tokens}`} />
-        <StatCard label="Avg Elaboration" value={`${adv.elaboration.avg_count}×`} sub={`${Object.keys(adv.elaboration.distribution).length} levels`} />
+        <StatCard label="Components" value={gr.connected_components} sub={`largest: ${gr.largest_component_pct}%`} color={gr.connected_components <= 2 ? "text-green-400" : "text-yellow-400"} />
+        <StatCard label="Avg Tokens" value={mq.avg_tokens} sub={`${mq.min_tokens}–${mq.max_tokens}`} />
+        <StatCard label="Avg Elaboration" value={`${elab.avg_count}×`} sub={`${Object.keys(elab.distribution).length} levels`} />
       </div>
 
       {/* ─── Row 3: Growth + Elaboration History ─── */}
@@ -281,7 +285,7 @@ export default function Monitoring() {
         {/* Edge Type Diversity */}
         <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
           <h3 className="text-sm font-medium text-slate-400 mb-1">Edge Type Distribution</h3>
-          <p className="text-xs text-slate-500 mb-3">{Math.round(adv.graph.typed_edge_ratio * 100)}% typed (non-relates_to)</p>
+          <p className="text-xs text-slate-500 mb-3">{Math.round(gr.typed_edge_ratio * 100)}% typed (non-relates_to)</p>
           <ResponsiveContainer width="100%" height={180}>
             <PieChart>
               <Pie data={edgeTypeData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ""} ${((percent ?? 0) * 100).toFixed(0)}%`} labelLine={false}>
@@ -297,7 +301,7 @@ export default function Monitoring() {
         {/* Elaboration Depth */}
         <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
           <h3 className="text-sm font-medium text-slate-400 mb-1">Elaboration Depth</h3>
-          <p className="text-xs text-slate-500 mb-3">avg {adv.elaboration.avg_count}× per memory</p>
+          <p className="text-xs text-slate-500 mb-3">avg {elab.avg_count}× per memory</p>
           <ResponsiveContainer width="100%" height={180}>
             <BarChart data={elabDepthData}>
               <XAxis dataKey="depth" stroke="#475569" tick={{ fontSize: 11 }} />
@@ -325,19 +329,19 @@ export default function Monitoring() {
           <div className="space-y-2">
             <div className="flex items-center justify-between text-xs">
               <span className="text-slate-400">Never accessed</span>
-              <span className="text-red-400 font-mono">{adv.access.never_accessed} ({adv.access.never_accessed_pct}%)</span>
+              <span className="text-red-400 font-mono">{acc.never_accessed} ({acc.never_accessed_pct}%)</span>
             </div>
             <div className="h-3 bg-slate-700 rounded-full overflow-hidden flex">
-              <div className="h-full bg-red-500/60" style={{ width: `${adv.access.never_accessed_pct}%` }} title="Never accessed" />
-              <div className="h-full bg-green-500/60" style={{ width: `${100 - adv.access.never_accessed_pct}%` }} title="Accessed" />
+              <div className="h-full bg-red-500/60" style={{ width: `${acc.never_accessed_pct}%` }} title="Never accessed" />
+              <div className="h-full bg-green-500/60" style={{ width: `${100 - acc.never_accessed_pct}%` }} title="Accessed" />
             </div>
             <p className="text-xs text-slate-500 mt-2">Top 10 access counts:</p>
             <div className="flex gap-1 flex-wrap">
-              {adv.access.top_10_access_counts.map((c, i) => (
+              {acc.top_10_access_counts.map((c, i) => (
                 <span key={i} className="text-xs px-1.5 py-0.5 bg-purple-500/20 text-purple-300 rounded font-mono">{c}</span>
               ))}
             </div>
-            <p className="text-xs text-slate-500">Total: {adv.access.total_accesses} accesses across {adv.total_memories} memories</p>
+            <p className="text-xs text-slate-500">Total: {acc.total_accesses} accesses across {adv.total_memories} memories</p>
           </div>
         </div>
 
@@ -369,7 +373,7 @@ export default function Monitoring() {
           <h3 className="text-sm font-medium text-slate-400 mb-1">Memory Types</h3>
           <p className="text-xs text-slate-500 mb-3">Balance across knowledge types</p>
           <div className="space-y-3 mt-4">
-            {Object.entries(adv.memory_quality.type_distribution).map(([type, count]) => {
+            {Object.entries(mq.type_distribution).map(([type, count]) => {
               const pct = adv.total_memories > 0 ? (count / adv.total_memories * 100) : 0;
               const color = type === "semantic" ? COLORS.blue : type === "episodic" ? COLORS.green : COLORS.orange;
               return (
@@ -386,8 +390,8 @@ export default function Monitoring() {
             })}
           </div>
           <div className="mt-4 pt-3 border-t border-slate-700/50 text-xs text-slate-500">
-            Avg tokens/memory: <span className="text-slate-300 font-mono">{adv.memory_quality.avg_tokens}</span>
-            <span className="text-slate-600 ml-1">({adv.memory_quality.min_tokens}–{adv.memory_quality.max_tokens})</span>
+            Avg tokens/memory: <span className="text-slate-300 font-mono">{mq.avg_tokens}</span>
+            <span className="text-slate-600 ml-1">({mq.min_tokens}–{mq.max_tokens})</span>
           </div>
         </div>
       </div>
