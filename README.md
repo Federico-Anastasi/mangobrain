@@ -220,7 +220,9 @@ Install MangoBrain for this project.
 
 2. Create a Python venv inside .mangobrain/.venv using Python 3.11 or higher (IMPORTANT:
    check which python versions are available and use one >= 3.11, NOT the default if it's older).
-   Then install dependencies: pip install -e .  (from the .mangobrain directory)
+   Then install PyTorch with GPU support if an NVIDIA GPU is available:
+   pip install torch --index-url https://download.pytorch.org/whl/cu124
+   Then install the rest: pip install -e .  (from the .mangobrain directory)
 
 3. Build the dashboard:
    cd .mangobrain/dashboard && npm install && npm run build
