@@ -271,12 +271,9 @@ export default function Setup() {
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white">Setup</h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Track initialization progress for your projects
-          </p>
-        </div>
+        <p className="text-sm text-slate-400">
+          Track initialization progress for your projects
+        </p>
         {projects.length > 1 && (
           <select
             value={activeProject || ""}

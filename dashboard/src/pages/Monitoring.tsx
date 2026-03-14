@@ -99,7 +99,6 @@ export default function Monitoring() {
   if (loading || !adv) {
     return (
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold text-white">Monitoring</h1>
         <div className="grid grid-cols-4 gap-4">
           {[...Array(4)].map((_, i) => <div key={i} className="h-24 bg-slate-800/50 rounded-xl animate-pulse" />)}
         </div>
@@ -178,8 +177,6 @@ export default function Monitoring() {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold text-white">Monitoring</h1>
-
       {/* ─── Row 1: Health Score + Breakdown ─── */}
       <div className="grid grid-cols-3 gap-4">
         {/* Health Score */}

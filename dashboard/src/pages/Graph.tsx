@@ -72,15 +72,12 @@ export default function Graph() {
 
   return (
     <div className="flex flex-col h-full space-y-3">
-      {/* Header */}
+      {/* Controls */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-white">Graph</h1>
-          <span className="text-xs text-slate-400 flex items-center gap-2">
-            <Database className="w-3.5 h-3.5" /> {nodes.length} nodes
-            <GitFork className="w-3.5 h-3.5 ml-2" /> {edges.length} edges
-          </span>
-        </div>
+        <span className="text-xs text-slate-400 flex items-center gap-2">
+          <Database className="w-3.5 h-3.5" /> {nodes.length} nodes
+          <GitFork className="w-3.5 h-3.5 ml-2" /> {edges.length} edges
+        </span>
         <div className="flex items-center gap-3">
           {/* Search */}
           <div className="relative">

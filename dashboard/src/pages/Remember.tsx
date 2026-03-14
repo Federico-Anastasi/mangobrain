@@ -88,13 +88,9 @@ export default function Remember() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white">Remember</h1>
-        <p className="text-slate-400 text-sm mt-1">
-          Query the memory engine — same retrieval as Claude&apos;s MCP tool
-        </p>
-      </div>
+      <p className="text-slate-400 text-sm">
+        Query the memory engine — same retrieval as Claude&apos;s MCP tool
+      </p>
 
       {/* Search bar */}
       <div className="bg-slate-800/50 rounded-xl border border-slate-700 p-4 space-y-3">

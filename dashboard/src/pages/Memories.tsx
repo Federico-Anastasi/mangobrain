@@ -40,14 +40,6 @@ export default function Memories() {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-bold text-white">Memories</h1>
-          <span className="px-2.5 py-0.5 bg-slate-800 border border-slate-700 rounded-lg text-sm text-slate-300 font-mono">{total}</span>
-        </div>
-      </div>
-
       {/* Filters */}
       <div className="flex gap-3 flex-wrap items-center">
         <div className="relative flex-1 max-w-sm">

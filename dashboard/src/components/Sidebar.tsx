@@ -23,7 +23,7 @@ const links = [
 export default function Sidebar() {
   return (
     <aside className="w-56 shrink-0 bg-slate-950 border-r border-slate-800 flex flex-col">
-      <div className="p-4 flex items-center gap-2 border-b border-slate-800">
+      <div className="px-4 h-12 flex items-center gap-2 border-b border-slate-800">
         <Brain className="w-6 h-6 text-purple-400" />
         <div>
           <span className="text-lg font-semibold text-white">MangoBrain</span>
