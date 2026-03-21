@@ -33,7 +33,7 @@
 ## Quick Start
 
 ```bash
-pip install mango-brain           # lightweight (~50MB, no PyTorch yet)
+pip install mangobrain           # lightweight (~50MB, no PyTorch yet)
 cd /your/project
 mangobrain install                # detects GPU, installs PyTorch, configures Claude Code
 mangobrain serve --api            # start server + dashboard
@@ -49,7 +49,7 @@ Open Claude Code in your project and paste:
 Install MangoBrain for this project.
 IMPORTANT: Use Python 3.11 or higher. Check available versions first (python --version,
 py -3.12 --version, python3.12 --version, etc.) and use the correct one for pip install.
-Run: pip install mango-brain  (using Python >= 3.11's pip)
+Run: pip install mangobrain  (using Python >= 3.11's pip)
 Then run: mangobrain install
 Then run: mangobrain serve --api (in background)
 Then tell me to open http://localhost:3101 and to restart Claude Code.
