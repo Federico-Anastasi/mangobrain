@@ -211,15 +211,28 @@ A visual control center with 7 pages:
 - **Claude Code** (Anthropic CLI)
 - **GPU** optional — works on CPU too (slower embeddings, slightly lower quality)
 
-### Install
+### Option A — Let Claude do everything
+
+Open Claude Code in your project and paste this:
+
+```
+Install MangoBrain for this project.
+IMPORTANT: Use Python 3.11 or higher. Check available versions first (python --version,
+py -3.12 --version, python3.12 --version, etc.) and use the correct one for pip install.
+Run: pip install mangobrain  (using Python >= 3.11's pip)
+Then run: mangobrain install
+Then run: mangobrain serve --api (in background)
+Then tell me to open http://localhost:3101 and to restart Claude Code.
+After restart, I should run /brain-init.
+```
+
+### Option B — Do it yourself
 
 ```bash
 pip install mangobrain
 ```
 
 This is a lightweight install (~50MB). The heavy dependencies (PyTorch, sentence-transformers) are installed in the next step with the right configuration for your hardware.
-
-### Setup
 
 ```bash
 cd /path/to/your/project
