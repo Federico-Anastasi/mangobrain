@@ -2,6 +2,14 @@
 
 MangoBrain fornisce memoria persistente e associativa tra sessioni Claude Code. Questa rule descrive come e quando usarla nel flusso di lavoro quotidiano.
 
+## Server
+
+MangoBrain richiede il server attivo per funzionare. Se l'utente chiede di avviarlo o se i tool MCP non rispondono:
+```
+mangobrain serve --api    # avvia server + dashboard (http://localhost:3101)
+```
+Eseguilo in background. Se il server e' gia' attivo, non serve riavviarlo.
+
 ## Overview
 
 MangoBrain non e' un file da leggere all'inizio. E' un sistema di retrieval attivo: chiedi quello che ti serve, quando ti serve. Le memorie contengono bug passati, decisioni architetturali, pattern, gotcha, riferimenti a utility e componenti — conoscenza che il codice da solo non comunica.
