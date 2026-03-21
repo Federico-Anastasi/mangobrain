@@ -344,7 +344,7 @@ mangobrain/
 ---
 
 <p align="center">
-  <strong>Built by <a href="https://github.com/Federico-Anastasi">Mango</a></strong>
+  <strong>Built by <a href="https://github.com/Federico-Anastasi">Federico Anastasi</a></strong>
   <br/>
   <sub>Because your AI pair-programmer shouldn't have amnesia.</sub>
 </p>
