@@ -9,39 +9,105 @@
 </p>
 
 <p align="center">
-  <em>Persistent memory that builds itself as you work. Zero manual effort.</em>
+  <em>Claude Code gets smarter the longer you use it.</em><br/>
+  <sub>Plan with <code>/discuss</code>. Execute with <code>/task</code>. Knowledge saves itself.</sub>
 </p>
 
 <p align="center">
+  <a href="https://pypi.org/project/mangobrain/"><img src="https://img.shields.io/pypi/v/mangobrain?style=flat-square&color=7c3aed&label=PyPI" /></a>
   <img src="https://img.shields.io/badge/python-3.11+-blue?style=flat-square&logo=python&logoColor=white" />
   <img src="https://img.shields.io/badge/MCP-compatible-8A2BE2?style=flat-square" />
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" />
 </p>
 
+<p align="center">
+  <a href="https://mangobrain.dev">Website</a> · <a href="#getting-started">Install</a> · <a href="https://pypi.org/project/mangobrain/">PyPI</a>
+</p>
+
 ---
 
 **Session 1:** You tell Claude that prices must be stored in cents, not euros.
-**Session 47:** Claude is about to write price logic. MangoBrain surfaces the memory automatically. Claude already knows.
+**Session 47:** Claude is about to write price logic. MangoBrain surfaces the memory. Claude already knows.
 
-**Session 3:** A timezone bug costs you 2 hours.
-**Session 28:** Claude touches date logic. The verifier recalls the gotcha. The bug doesn't happen again.
-
-**No manual saving. No tagging. No "remember this".** The mem-manager captures knowledge at session close. The analyzer and verifier recall it when it matters. You just work.
+**No manual saving. No tagging.** The mem-manager captures knowledge at session close. The analyzer and verifier recall it when it matters.
 
 ---
 
-## Quick Start
+## Why this exists
 
-```bash
-pip install mangobrain           # lightweight (~50MB, no PyTorch yet)
-cd /your/project
-mangobrain install                # detects GPU, installs PyTorch, configures Claude Code
-mangobrain serve --api            # start server + dashboard
-# restart Claude Code, then run the brain-init skill
+I build side projects at night after my day job. Claude Code is my pair-programmer, but every new session starts from scratch.
+
+I tried the obvious approach first — `CLAUDE.md` files, rules, detailed docs. Anything to give Claude context. It works, until it doesn't. Files get stale. You forget to update them. Claude reads 500 lines of instructions but misses the one thing that matters for *this* specific task. And when the project grows, maintaining those files becomes a project in itself.
+
+Then I tried memory MCP servers. They store things, but you're back to manual work — deciding what to save, writing explicit prompts to recall, maintaining yet another system on top of your code.
+
+So I built what I actually needed: a system where memory handles itself. You work normally — plan with `/discuss`, execute with `/task` — and knowledge accumulates automatically. The mem-manager captures decisions, bugs, patterns at session close. The analyzer and verifier recall them when relevant. Zero effort from you.
+
+After 500+ memories across two real projects, session 50 is genuinely better than session 1.
+
+---
+
+## How it works
+
+```mermaid
+flowchart LR
+    DISCUSS["/discuss\nPlan with memory"] -->|task.md| TASK["/task"]
+
+    subgraph agents ["4 specialized agents"]
+        direction TB
+        ANALYZER["Analyzer\nExplores code + recalls memory"]
+        EXECUTOR["Executor\nWrites code — no memory, 100% focused"]
+        VERIFIER["Verifier\nQA + checks known issues"]
+        MEMMGR["Mem-manager\nCaptures knowledge at close"]
+    end
+
+    TASK --> agents
+    MEMMGR -->|saves| MEMORY[("Memory")]
+    MEMORY -.->|"recalls"| ANALYZER
+    MEMORY -.->|"recalls"| VERIFIER
+    MEMORY -->|"next session"| DISCUSS
 ```
 
+**The closed loop:** work produces knowledge, knowledge improves work.
+
+| Phase | What happens |
+|-------|-------------|
+| `/discuss` | You describe what to build. Claude recalls past decisions, known bugs, patterns. Analyzers explore the codebase *and* memory. Output: `task.md`. |
+| `/task` | 4 agents execute with strict roles. The **analyzer** checks memory for gotchas. The **executor** writes code (no memory access — 100% focused). The **verifier** recalls known issues before shipping. |
+| `close` | The **mem-manager** runs automatically. Captures decisions, bugs found, patterns learned. Zero effort. |
+| `next session` | Memory surfaces relevant knowledge. The loop repeats — each cycle smarter than the last. |
+
+---
+
+## Getting started
+
+### 1. Install
+
+```bash
+pip install mangobrain
+```
+
+Lightweight install (~50MB). PyTorch and the embedding engine are installed in the next step, optimized for your hardware.
+
+### 2. Setup your project
+
+```bash
+cd /path/to/your/project
+mangobrain install
+```
+
+Detects your GPU (NVIDIA CUDA) or defaults to CPU. Installs PyTorch, configures Claude Code with skills, agents, and rules.
+
+### 3. Start and initialize
+
+```bash
+mangobrain serve --api
+```
+
+Open http://localhost:3101 for the dashboard. Restart Claude Code to load the MCP server, then run `/brain-init` — a guided 14-step wizard that builds your project's initial memory from docs, code, and past sessions.
+
 <details>
-<summary>Or let Claude do everything</summary>
+<summary>Or let Claude handle the setup</summary>
 
 Open Claude Code in your project and paste:
 
@@ -60,151 +126,82 @@ After restart, I should run the brain-init skill to initialize memory.
 
 ---
 
-## How It Works
-
-```
-/discuss ──→ /task ──→ knowledge saved automatically ──→ next session starts smarter
-```
-
-| Step | What happens | Memory role |
-|------|-------------|------------|
-| **`/discuss`** | Plan a feature. Claude recalls past decisions, patterns, gotchas. | Analyzer queries memory during exploration |
-| **`/task`** | 4 agents execute: analyzer, executor, verifier, mem-manager. | Verifier checks for known issues before shipping |
-| **close** | mem-manager runs automatically at session end. | Captures decisions, bugs, patterns — zero effort |
-| **next session** | `/discuss` or `/task` starts with full context. | Memory surfaces relevant knowledge automatically |
-
-This is the closed loop: **work → capture → recall → better work**.
-
----
-
-## What Makes It Different
-
-|  | Memory Stores | Workflow Tools | **MangoBrain** |
-|--|---------------|----------------|----------------|
-|  | *Mem0, MCP Memory* | *Ruflo, Claude Pilot* |  |
-| Remembers across sessions | ✅ | — | ✅ |
-| Structured agent workflow | — | ✅ | ✅ |
-| **Auto-captures knowledge** | — | — | ✅ |
-| **Memory informs execution** | — | — | ✅ |
-| Graph relationships | — | — | ✅ typed edges |
-| Temporal decay | — | — | ✅ per memory type |
-| Contradicts & supersedes | — | — | ✅ auto-suppressed |
-| Health monitoring | — | — | ✅ dashboard + alerts |
-
-> Other tools give you storage or structure. MangoBrain gives you both — and the memory builds itself.
-
----
-
 ## Dashboard
 
-A 7-page visual control center. Health score, memory browser, graph visualization, query interface, monitoring.
+A 7-page control center to monitor, query, and explore your project's memory.
 
 <p align="center">
-  <img src="assets/dashboard-overview.png" alt="Dashboard Overview" width="800" />
+  <img src="assets/dashboard-overview.png" alt="MangoBrain Dashboard" width="800" />
 </p>
 
----
-
-## The Workflow in Detail
-
-### `/discuss` — Plan with memory
-
-Describe what you want to build. Claude recalls past decisions, known bugs, architectural patterns. Analyzer agents explore the codebase *and* query memory for gotchas. Output: a `task.md` ready for execution.
-
-### `/task` — Execute with agents
-
-4 specialized agents with strict roles:
-
-| Agent | Role | Memory access |
-|-------|------|---------------|
-| **Analyzer** | Explores code, finds patterns and risks | ✅ reads memory |
-| **Executor** | Writes code — 100% focused on implementation | ❌ no memory (receives context from Main) |
-| **Verifier** | QA: build, tests, lint, known issues | ✅ reads memory |
-| **Mem-manager** | Saves knowledge at session close | ✅ full memory access |
-
-### `/memorize` — Manual save
-
-For sessions outside the discuss→task cycle. Spawns the mem-manager to capture what happened.
-
-### Maintenance
-
-| Skill | When | What it does |
-|-------|------|-------------|
-| `/elaborate` | Weekly | Consolidates: graph edges, contradictions, abstractions |
-| `/health-check` | Monthly | Diagnoses gaps, runs targeted fixes |
-| `/smoke-test` | After changes | Tests retrieval quality with diverse queries |
-
----
-
-## Installation Details
-
-### What `mangobrain install` does
-
-1. **Detects hardware** — finds your GPU (NVIDIA CUDA) or defaults to CPU
-2. **Installs embedding engine** — PyTorch + sentence-transformers, optimized for your hardware
-   - GPU detected → asks CUDA (~2GB) or CPU (~200MB)
-   - No GPU → installs CPU automatically
-   - Already installed → skips
-3. **Installs skills & rules** — copies 7 skills, 4 agents, 2 rules into `.claude/`
-4. **Configures MCP** — creates `.mcp.json` for Claude Code
-5. **Updates CLAUDE.md** — adds MangoBrain documentation
-
-### Memory initialization
-
-`/brain-init` guides you through **14 steps across 7 phases**:
-
-| Phase | What it does | Sessions |
-|-------|-------------|----------|
-| Doc Base | Extract from CLAUDE.md, rules, documentation | 1 |
-| Code Base | Parallel agents scan codebase for patterns | 1-2 |
-| Event Base | Import existing knowledge (optional) | 1 |
-| Chat Base | Extract from past Claude Code sessions | 1-3 |
-| Elaborate | Build graph: edges, contradictions, abstractions | 1-2 |
-| Smoke Test | Verify retrieval quality | 1 |
-| Health Check | Diagnose gaps, validate final state | 1 |
-
-Progress is tracked automatically. If you stop mid-way, `/brain-init` picks up where you left off.
-
----
-
 <details>
-<summary><strong>Under the Hood</strong></summary>
+<summary>More screenshots</summary>
 
-### Retrieval
-
-| Mode | Results | When |
-|------|---------|------|
-| **Deep** | ~20, full graph propagation | Session start, big picture |
-| **Quick** | ~6, light propagation | Mid-task targeted lookups |
-| **Recent** | ~15, time-weighted | WIP context, session resume |
-
-Pipeline: cosine similarity (BGE embeddings) → graph propagation (PageRank-style) → knapsack selection (optimize relevance per token).
-
-### Graph
-
-Typed edges: `relates_to`, `depends_on`, `caused_by`, `co_occurs`, `contradicts`, `supersedes`. When a decision is updated, the old version gets automatically suppressed.
-
-### Decay
-
-| Type | Rate | Example |
-|------|------|---------|
-| Episodic | 0.01/day | "Bug X happened Tuesday" — fades fast |
-| Semantic | 0.002/day | "This module uses strategy pattern" — persists |
-| Procedural | 0.001/day | "Always use cents, never euros" — sticks forever |
-
-### Storage
-
-Single SQLite database at `~/.mangobrain/mangobrain.db`. Override with `MANGOBRAIN_DB` env var.
-
-### MCP Tools (15)
-
-remember, memorize, update_memory, extract_session, init_project, read_project_memory, prepare_elaboration, apply_elaboration, reinforce, decay, stats, diagnose, list_memories, sync_codebase, setup_status
+| | |
+|---|---|
+| ![Remember](assets/dashboard-remember.png) **Remember** — Query memories like Claude does | ![Graph](assets/dashboard-graph.png) **Graph** — Visualize memory connections |
+| ![Memories](assets/dashboard-memories.png) **Memories** — Browse and inspect | ![Overview](assets/dashboard-overview.png) **Overview** — Health, metrics, growth |
 
 </details>
 
 ---
 
-## Configuration
+## What's under the hood
+
+<details>
+<summary><strong>Memory model</strong></summary>
+
+Every memory is 2-5 lines, English, atomic, self-contained. Three types with different decay rates:
+
+| Type | Decay rate | What it stores | Lifespan |
+|------|-----------|----------------|----------|
+| **Episodic** | 0.01/day | Bugs, sessions, events | Fades in weeks |
+| **Semantic** | 0.002/day | Architecture, decisions, patterns | Persists for months |
+| **Procedural** | 0.001/day | Conventions, rules, how-tos | Nearly permanent |
+
+Memories link through typed edges: `relates_to`, `depends_on`, `caused_by`, `co_occurs`, `contradicts`, `supersedes`. When a decision is updated, the old version gets automatically suppressed.
+
+</details>
+
+<details>
+<summary><strong>Retrieval pipeline</strong></summary>
+
+Three modes optimized for different moments:
+
+| Mode | Results | When to use |
+|------|---------|-------------|
+| **Deep** | ~20, full graph propagation (α=0.3) | Session start, big picture planning |
+| **Quick** | ~6, light propagation (α=0.15) | Mid-task targeted lookups |
+| **Recent** | ~15, time-weighted + k-hop neighbors | WIP context, session resume |
+
+Pipeline: embed query (BGE) → cosine similarity → apply decay scores → graph propagation (PageRank-style with signed edges) → knapsack selection (maximize relevance per token within budget).
+
+</details>
+
+<details>
+<summary><strong>Skills & maintenance</strong></summary>
+
+| Skill | Purpose | When |
+|-------|---------|------|
+| `/discuss` | Plan with memory context → produces `task.md` | Starting new work |
+| `/task` | Execute with 4 agents + memory | Implementing features/fixes |
+| `/memorize` | Manual session sync | Free sessions outside /task |
+| `/brain-init` | Guided 14-step initialization | First time setup |
+| `/elaborate` | Consolidate graph, build edges, resolve duplicates | Weekly |
+| `/health-check` | Diagnose gaps, run targeted fixes | Monthly |
+| `/smoke-test` | Test retrieval quality | After changes |
+
+</details>
+
+<details>
+<summary><strong>MCP tools (15)</strong></summary>
+
+`remember` · `memorize` · `update_memory` · `list_memories` · `extract_session` · `init_project` · `read_project_memory` · `prepare_elaboration` · `apply_elaboration` · `reinforce` · `decay` · `stats` · `diagnose` · `sync_codebase` · `setup_status`
+
+</details>
+
+<details>
+<summary><strong>Configuration & CLI</strong></summary>
 
 ```toml
 # mangobrain.toml (optional — defaults work for most setups)
@@ -213,7 +210,7 @@ remember, memorize, update_memory, extract_session, init_project, read_project_m
 path = "~/.mangobrain/mangobrain.db"
 
 [embedding]
-model = "auto"    # GPU → bge-large (1024d), CPU → bge-base (768d)
+model = "auto"    # GPU → bge-large-en-v1.5 (1024d), CPU → bge-base-en-v1.5 (768d)
 device = "auto"   # auto-detects CUDA
 
 [decay]
@@ -222,29 +219,31 @@ semantic = 0.002
 procedural = 0.001
 ```
 
-## CLI
-
 ```bash
 mangobrain serve              # MCP server (stdio)
-mangobrain serve --api        # API + dashboard
+mangobrain serve --api        # REST API + dashboard on :3101
 mangobrain serve --all        # Both
 mangobrain install            # Full interactive setup
-mangobrain init -p NAME       # Initialize project
+mangobrain init -p NAME       # Initialize project in DB
 mangobrain status -p NAME     # Setup progress
 mangobrain doctor             # System health check
-mangobrain dashboard          # Open dashboard
+mangobrain dashboard          # Open dashboard in browser
 ```
+
+</details>
+
+---
 
 ## Requirements
 
 - **Python** 3.11+
 - **Claude Code** (Anthropic CLI)
-- **GPU** optional — works on CPU (slower, slightly lower quality embeddings)
+- **GPU** optional — CUDA for best quality embeddings, CPU works fine
 
 ---
 
 <p align="center">
-  <strong>Built by <a href="https://github.com/Federico-Anastasi">Federico Anastasi</a></strong>
+  Built by <a href="https://github.com/Federico-Anastasi">Federico Anastasi</a>
   <br/>
   <sub>Because your AI pair-programmer shouldn't have amnesia.</sub>
 </p>

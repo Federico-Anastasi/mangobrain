@@ -425,12 +425,19 @@ def _setup_mcp_json(project_path: Path) -> None:
     if "mcpServers" not in config:
         config["mcpServers"] = {}
 
+    # Remove legacy entry if present
+    if "mango-brain" in config["mcpServers"]:
+        del config["mcpServers"]["mango-brain"]
+
     # Point to the installed mangobrain's python
     python_path = sys.executable.replace("\\", "/")
 
     config["mcpServers"]["mangobrain"] = {
         "command": python_path,
         "args": ["-m", "server"],
+        "env": {
+            "PYTHONIOENCODING": "utf-8",
+        },
     }
 
     mcp_json.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
