@@ -37,7 +37,7 @@ pip install mango-brain           # lightweight (~50MB, no PyTorch yet)
 cd /your/project
 mangobrain install                # detects GPU, installs PyTorch, configures Claude Code
 mangobrain serve --api            # start server + dashboard
-# restart Claude Code, then run /brain-init
+# restart Claude Code, then run the brain-init skill
 ```
 
 <details>
@@ -53,7 +53,7 @@ Run: pip install mango-brain  (using Python >= 3.11's pip)
 Then run: mangobrain install
 Then run: mangobrain serve --api (in background)
 Then tell me to open http://localhost:3101 and to restart Claude Code.
-After restart, I should run /brain-init.
+After restart, I should run the brain-init skill to initialize memory.
 ```
 
 </details>
