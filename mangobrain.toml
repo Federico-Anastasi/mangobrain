@@ -6,7 +6,9 @@
 api_port = 3101                     # REST API + dashboard port
 
 [database]
-path = "data/mangobrain.db"         # Relative to mango-brain root
+# path = "~/.mangobrain/mangobrain.db"  # Default: ~/.mangobrain/mangobrain.db
+# Uncomment and change to override the default location.
+# Supports absolute paths or MANGOBRAIN_DB env var.
 
 [embedding]
 model = "auto"                      # "auto" = cuda->bge-large, cpu->bge-base

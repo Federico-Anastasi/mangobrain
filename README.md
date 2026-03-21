@@ -163,7 +163,7 @@ Bug reports fade. Architecture decisions persist. Conventions stick around forev
 </details>
 
 <details>
-<summary><strong>🧩 MCP Tools (14 available)</strong></summary>
+<summary><strong>🧩 MCP Tools (15 available)</strong></summary>
 
 | Tool | Description |
 |------|-------------|
@@ -181,6 +181,7 @@ Bug reports fade. Architecture decisions persist. Conventions stick around forev
 | `reinforce` | Boost edge weights |
 | `decay` | Apply temporal decay |
 | `init_project` | Bootstrap project metadata |
+| `read_project_memory` | Read legacy project memory files |
 
 </details>
 
@@ -188,11 +189,12 @@ Bug reports fade. Architecture decisions persist. Conventions stick around forev
 
 ## Dashboard
 
-A visual control center with 6 pages:
+A visual control center with 7 pages:
 
 | Page | Purpose |
 |------|---------|
 | **Overview** | Health score, memory growth timeline, setup status, alerts |
+| **Remember** | Interactive memory query interface |
 | **Setup** | Step-by-step initialization wizard with progress tracking |
 | **Memories** | Browse, search, filter, inspect individual memories |
 | **Graph** | Force-directed visualization of the memory network |
@@ -207,46 +209,44 @@ A visual control center with 6 pages:
 
 - **Python** 3.11+
 - **Claude Code** (Anthropic CLI)
+- **GPU** optional — works on CPU too (slower embeddings, slightly lower quality)
 
-### Option A — Let Claude do everything
-
-Open Claude Code in your project and paste this:
-
-```
-Install MangoBrain for this project.
-IMPORTANT: Use Python 3.11 or higher. Check available versions first (python --version,
-py -3.12 --version, python3.12 --version, etc.) and use the correct one for pip install.
-Run: pip install mango-brain  (using Python >= 3.11's pip)
-Then run: mango-brain install
-Then run: mango-brain serve --api (in background)
-Then tell me to open http://localhost:3101 and to restart Claude Code.
-After restart, I should run /brain-init.
-```
-
-### Option B — Do it yourself
+### Install
 
 ```bash
-pip install mango-brain
-cd /path/to/your/project
-mango-brain install
-mango-brain serve --api
+pip install mangobrain
 ```
 
-### What `mango-brain install` does
+This is a lightweight install (~50MB). The heavy dependencies (PyTorch, sentence-transformers) are installed in the next step with the right configuration for your hardware.
 
-- Detects your GPU and installs the right PyTorch (CUDA or CPU)
-- Installs skills, agents, rules, and prompts into `.claude/`
-- Configures `.mcp.json` for Claude Code
-- Updates `CLAUDE.md` with MangoBrain documentation
-- Registers the project in the MangoBrain database
+### Setup
 
-### After install
+```bash
+cd /path/to/your/project
+mangobrain install
+```
 
-1. Open **http://localhost:3101** — the dashboard tracks your progress live
-2. **Restart Claude Code** to load the MCP server
-3. Run `/brain-init` — the wizard guides you through memory initialization
+The installer guides you through 5 steps:
 
-The `/brain-init` wizard guides you through **14 steps across 7 phases**:
+1. **Hardware detection** — finds your GPU (if any)
+2. **Embedding engine** — installs PyTorch + sentence-transformers optimized for your hardware
+   - GPU detected → asks if you want CUDA (~2GB) or CPU-only (~200MB)
+   - No GPU → installs CPU-only automatically
+   - Already installed → skips (idempotent)
+3. **Skills & rules** — copies skills, agents, rules, prompts into `.claude/`
+4. **MCP config** — creates `.mcp.json` for Claude Code
+5. **CLAUDE.md** — adds MangoBrain section to your project docs
+
+### After setup
+
+1. Start the server: `mangobrain serve --api`
+2. Open **http://localhost:3101** — the dashboard tracks your progress
+3. **Restart Claude Code** to load the MCP server
+4. Run `/brain-init` — the wizard guides you through memory initialization
+
+### Memory initialization
+
+`/brain-init` guides you through **14 steps across 7 phases**:
 
 | Phase | What it does | Sessions |
 |-------|-------------|----------|
@@ -258,7 +258,7 @@ The `/brain-init` wizard guides you through **14 steps across 7 phases**:
 | **6. Smoke Test** | 10-20 diverse queries to verify retrieval quality | 1 |
 | **7. Health Check** | Diagnoses gaps, runs targeted fixes, validates final state | 1 |
 
-> **Note:** Each phase runs in a separate Claude Code session (for fresh context). The wizard tells you exactly when to restart and what to do next. Progress is tracked automatically — if you stop mid-way, `/brain-init` picks up where you left off. Watch the dashboard update in real-time as memories are created and connected.
+> Each phase runs in a separate Claude Code session (for fresh context). The wizard tells you when to restart and what to do next. Progress is tracked automatically — if you stop mid-way, `/brain-init` picks up where you left off.
 
 When the dashboard shows **"Memory Ready"**, initialization is complete.
 
@@ -269,7 +269,10 @@ After that, your daily workflow is simply: `/discuss` → `/task` → repeat.
 ## Configuration
 
 ```toml
-# mangobrain.toml
+# mangobrain.toml (optional — defaults work for most setups)
+
+[database]
+path = "~/.mangobrain/mangobrain.db"  # default, override with MANGOBRAIN_DB env var
 
 [embedding]
 model = "auto"          # GPU → bge-large (1024d), CPU → bge-base (768d)
@@ -288,36 +291,41 @@ procedural = 0.001      # slow
 ## CLI
 
 ```bash
-mango-brain serve              # MCP server (stdio)
-mango-brain serve --api        # API + dashboard
-mango-brain serve --all        # Both
+mangobrain serve              # MCP server (stdio)
+mangobrain serve --api        # API + dashboard
+mangobrain serve --all        # Both
 
-mango-brain init -p NAME --path PATH   # Initialize project
-mango-brain install --path PATH        # Install skills/agents/rules
-mango-brain status -p NAME             # Setup progress
-mango-brain doctor                     # System health check
-mango-brain dashboard                  # Open dashboard in browser
+mangobrain init -p NAME --path PATH   # Initialize project
+mangobrain install --path PATH        # Install skills/agents/rules + embedding engine
+mangobrain status -p NAME             # Setup progress
+mangobrain doctor                     # System health check
+mangobrain dashboard                  # Open dashboard in browser
 ```
 
-## Requirements
+## Data Storage
 
-- **Python** 3.11+
-- **PyTorch** 2.2+ (GPU optional — CPU works fine)
-- **Node.js** 18+ (for dashboard build)
+All memory data is stored in a single SQLite database:
 
-## Project Structure
+```
+~/.mangobrain/mangobrain.db    # default location (all projects, single DB)
+```
+
+Override with `MANGOBRAIN_DB` environment variable or `[database] path` in `mangobrain.toml`.
+
+## Project Structure (GitHub repo)
 
 ```
 mangobrain/
-├── server/           # Python MCP server + REST API
-├── dashboard/        # React 19 + Vite + Tailwind
-├── skills/           # 7 skills (/discuss, /task, /brain-init, /memorize, /elaborate, /health-check, /smoke-test)
-├── agents/           # 4 agent prompts (analyzer, executor, verifier, mem-manager)
-├── rules/            # 2 auto-loaded rules (query strategy, workflow integration)
-├── prompts/          # Init phase instructions + memory quality reference
-├── tests/            # Test suite
-├── mangobrain.toml   # Configuration
-└── pyproject.toml    # Python package
+├── server/               # Python MCP server + REST API
+│   ├── skills/           # 7 skills (/discuss, /task, /brain-init, /memorize, /elaborate, /health-check, /smoke-test)
+│   ├── agents/           # 4 agent prompts (analyzer, executor, verifier, mem-manager)
+│   ├── rules/            # 2 auto-loaded rules (query strategy, workflow integration)
+│   ├── prompts/          # Init phase instructions + memory quality reference
+│   └── dashboard_dist/   # Pre-built dashboard (served by API)
+├── dashboard/            # React 19 + Vite + Tailwind (source)
+├── tests/                # Test suite
+├── mangobrain.toml       # Configuration
+└── pyproject.toml        # Python package
 ```
 
 ---

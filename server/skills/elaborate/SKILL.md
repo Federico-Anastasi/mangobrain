@@ -14,6 +14,13 @@ Runs a memory elaboration cycle: consolidates, reorganizes, and strengthens the 
 - **focus_instructions** (optional): additional context for the focus (e.g., from diagnose prescriptions)
 - **seed_count** (optional): number of seed memories to process (default: 50)
 
+## Setup
+
+**BEFORE analyzing or creating any memory**, read the quality reference:
+- `.claude/prompts/mangobrain/reference/memory-definition.md` — canonical definition of what a memory is, quality standards, types, tags, relations, examples
+
+This is especially important for Step 4 when creating abstracted patterns and updating existing memories.
+
 ## Workflow
 
 ### Step 1 — Get the working set

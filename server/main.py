@@ -11,10 +11,37 @@ from mcp.server.fastmcp import FastMCP
 
 from server.config import API_PORT, DB_PATH, EMBEDDING_DEVICE, EMBEDDING_MODEL, PACKAGE_DIR
 from server.database import Database
-from server.embeddings import Embedder
 from server.graph import GraphManager
 from server.mcp_tools import register_tools
-from server.retrieval import RetrievalEngine
+
+
+def _check_embedding_deps() -> None:
+    """Check that torch and sentence-transformers are installed."""
+    try:
+        import torch  # noqa: F401
+        import sentence_transformers  # noqa: F401
+    except ImportError:
+        print(
+            "\n[MangoBrain] Error: Embedding engine not installed.\n"
+            "\n"
+            "  torch and sentence-transformers are required to run the server.\n"
+            "  They are installed during 'mangobrain install' (step 2).\n"
+            "\n"
+            "  To fix, run:\n"
+            "    cd /path/to/your/project\n"
+            "    mangobrain install\n"
+            "\n"
+            "  Or install manually:\n"
+            "    pip install torch sentence-transformers numpy scipy\n"
+        )
+        sys.exit(1)
+
+
+def _load_embedder():
+    """Load embedder (import here to defer heavy imports)."""
+    from server.embeddings import Embedder
+    from server.retrieval import RetrievalEngine
+    return Embedder, RetrievalEngine
 
 logging.basicConfig(
     level=logging.INFO,
@@ -25,6 +52,9 @@ logger = logging.getLogger("mangobrain")
 
 async def run_mcp_server() -> None:
     """Run the MCP server over stdio."""
+    _check_embedding_deps()
+    Embedder, RetrievalEngine = _load_embedder()
+
     logger.info("Initializing MangoBrain MCP server...")
 
     db = await Database.create(DB_PATH)
@@ -36,7 +66,7 @@ async def run_mcp_server() -> None:
     graph = GraphManager()
     retrieval = RetrievalEngine(db, embedder, graph)
 
-    server = FastMCP("mango-brain")
+    server = FastMCP("mangobrain")
     register_tools(server, db, embedder, graph, retrieval)
     logger.info("MCP tools registered — running on stdio")
 
@@ -46,15 +76,15 @@ async def run_mcp_server() -> None:
 
 async def run_api_server() -> None:
     """Run the FastAPI REST API server (serves dashboard + API)."""
+    _check_embedding_deps()
+    Embedder, RetrievalEngine = _load_embedder()
+
     import uvicorn
     from fastapi import FastAPI
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.staticfiles import StaticFiles
 
     from server.api_routes import create_api_router
-    from server.embeddings import Embedder
-    from server.graph import GraphManager
-    from server.retrieval import RetrievalEngine
 
     db = await Database.create(DB_PATH)
     embedder = Embedder(EMBEDDING_MODEL, EMBEDDING_DEVICE)
@@ -101,6 +131,9 @@ async def run_api_server() -> None:
 
 async def run_all() -> None:
     """Run both MCP (stdio) and API server concurrently."""
+    _check_embedding_deps()
+    Embedder, RetrievalEngine = _load_embedder()
+
     logger.info("Starting MangoBrain in full mode (MCP + API)...")
 
     db = await Database.create(DB_PATH)
@@ -110,7 +143,7 @@ async def run_all() -> None:
     retrieval = RetrievalEngine(db, embedder, graph)
 
     # MCP server
-    mcp_server = FastMCP("mango-brain")
+    mcp_server = FastMCP("mangobrain")
     register_tools(mcp_server, db, embedder, graph, retrieval)
 
     # API server

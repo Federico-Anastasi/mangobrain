@@ -8,8 +8,13 @@ from typing import Optional
 from fastapi import APIRouter, Query
 from fastapi.responses import JSONResponse
 
+import numpy as np
+
+from server.config import DEDUP_THRESHOLD, count_tokens
 from server.database import Database
-from server.models import MemoryType
+from server.decay import DecayManager
+from server.embeddings import Embedder
+from server.models import Edge, Memory, MemoryInput, MemorySource, MemoryType
 
 
 def _memory_to_dict(m) -> dict:
@@ -990,7 +995,7 @@ def create_api_router(db: Database, retrieval=None) -> APIRouter:
             stats = await _compute_stats()
             return {
                 "status": "ok",
-                "service": "mango-brain",
+                "service": "mangobrain",
                 "health_score": stats["health_score"],
                 "total_memories": stats["total_memories"],
                 "total_edges": stats["total_edges"],
@@ -999,7 +1004,7 @@ def create_api_router(db: Database, retrieval=None) -> APIRouter:
         except Exception as e:
             return {
                 "status": "ok",
-                "service": "mango-brain",
+                "service": "mangobrain",
                 "health_score": 1.0,
                 "total_memories": 0,
                 "total_edges": 0,
@@ -1130,5 +1135,156 @@ def create_api_router(db: Database, retrieval=None) -> APIRouter:
                 status_code=500,
                 content={"error": str(e)},
             )
+
+    # ── Memorize (save) ─────────────────────────────────────────────
+
+    @router.post("/memorize")
+    async def memorize_memories(body: dict):
+        """Save one or more memories (same as MCP memorize)."""
+        if not retrieval:
+            return JSONResponse(
+                status_code=503,
+                content={"error": "Retrieval engine not available (API started without embeddings)"},
+            )
+        try:
+            embedder = retrieval.embedder
+            memories_data = body.get("memories", [])
+            session_id = body.get("session_id")
+            source = body.get("source", "manual")
+
+            if not memories_data:
+                return JSONResponse(
+                    status_code=400,
+                    content={"error": "memories list is required"},
+                )
+
+            created = 0
+            edges_created = 0
+            duplicates_skipped = 0
+            src = MemorySource(source)
+
+            for mem_dict in memories_data:
+                mi = MemoryInput(**mem_dict)
+
+                # Compute embedding
+                emb = embedder.encode(mi.content)
+                emb_bytes = Embedder.embedding_to_bytes(emb)
+
+                # Dedup check
+                existing = await db.get_all_memories(project=mi.project, deprecated=False)
+                if existing:
+                    existing_embs = np.array([
+                        Embedder.bytes_to_embedding(m.embedding) for m in existing
+                    ])
+                    sims = Embedder.cosine_similarity(emb, existing_embs)
+                    if sims.max() > DEDUP_THRESHOLD:
+                        duplicates_skipped += 1
+                        continue
+
+                # Create memory
+                memory = Memory(
+                    content=mi.content,
+                    embedding=emb_bytes,
+                    type=mi.type,
+                    project=mi.project,
+                    tags=mi.tags,
+                    token_count=count_tokens(mi.content),
+                    source=src,
+                    source_session=session_id,
+                    file_path=mi.file_path,
+                    code_signature=mi.code_signature,
+                )
+                await db.insert_memory(memory)
+                created += 1
+
+                # Create edges from relations
+                for rel in mi.relations:
+                    target_mem_id = None
+                    if rel.target_id:
+                        target_mem = await db.get_memory(rel.target_id)
+                        if target_mem:
+                            target_mem_id = rel.target_id
+                    if not target_mem_id and rel.target_query and existing:
+                        rel_emb = embedder.encode(rel.target_query)
+                        sims = Embedder.cosine_similarity(rel_emb, existing_embs)
+                        best_idx = int(sims.argmax())
+                        if sims[best_idx] > 0.5:
+                            target_mem_id = existing[best_idx].id
+                    if target_mem_id:
+                        edge = Edge(
+                            from_id=memory.id,
+                            to_id=target_mem_id,
+                            weight=rel.weight,
+                            type=rel.relation_type,
+                            source=src,
+                        )
+                        await db.insert_edge(edge)
+                        edges_created += 1
+
+            return {
+                "created": created,
+                "edges_created": edges_created,
+                "duplicates_skipped": duplicates_skipped,
+            }
+        except Exception as e:
+            return JSONResponse(
+                status_code=500,
+                content={"error": str(e)},
+            )
+
+    # ── Decay ─────────────────────────────────────────────────────────────
+
+    @router.post("/decay")
+    async def run_decay(
+        project: Optional[str] = Query(None, description="Filter by project"),
+        dry_run: bool = Query(False, description="Preview without applying"),
+    ):
+        """Apply temporal decay to memories. Optionally filter by project."""
+        if project:
+            # Decay only memories for a specific project
+            all_memories = await db.get_all_memories(project=project, deprecated=False)
+            if not all_memories:
+                return {"decayed": 0, "deprecated": 0, "project": project}
+
+            import math
+            from server.config import DECAY_LAMBDAS
+
+            now = datetime.utcnow()
+            decayed = 0
+            deprecated = 0
+
+            for m in all_memories:
+                ref_date = m.last_accessed or m.created_at
+                if isinstance(ref_date, str):
+                    ref_date = datetime.fromisoformat(ref_date)
+                days = (now - ref_date).total_seconds() / 86400.0
+                if days <= 0:
+                    continue
+
+                lam = DECAY_LAMBDAS.get(
+                    m.type.value if hasattr(m.type, "value") else m.type, 0.01
+                )
+                new_score = m.decay_score * math.exp(-lam * days)
+
+                if abs(new_score - m.decay_score) < 0.001:
+                    continue
+
+                is_now_deprecated = new_score < 0.1
+
+                if not dry_run:
+                    fields: dict = {"decay_score": new_score}
+                    if is_now_deprecated:
+                        fields["is_deprecated"] = True
+                    await db.update_memory(m.id, fields)
+
+                decayed += 1
+                if is_now_deprecated:
+                    deprecated += 1
+
+            return {"decayed": decayed, "deprecated": deprecated, "project": project}
+        else:
+            # Global decay
+            result = await DecayManager.apply_decay(db, dry_run=dry_run)
+            return result
 
     return router

@@ -135,16 +135,19 @@ def _resolve_model(device: str) -> str:
 # ── Resolved config values ────────────────────────────────────────────────────
 
 # Paths — resolve DB location
-# Priority: MANGOBRAIN_DB env var > config file > cwd/data/
+# Priority: MANGOBRAIN_DB env var > config file > ~/.mangobrain/
+_DEFAULT_DATA_DIR = Path.home() / ".mangobrain"
+_DEFAULT_DB = _DEFAULT_DATA_DIR / "mangobrain.db"
+
 _db_env = os.environ.get("MANGOBRAIN_DB")
-_db_raw = Path(_get("database", "path", "data/mangobrain.db"))
+_db_toml = _toml.get("database", {}).get("path")
 if _db_env:
     DB_PATH = Path(_db_env)
-elif _db_raw.is_absolute():
-    DB_PATH = _db_raw
+elif _db_toml:
+    _db_toml_path = Path(_db_toml)
+    DB_PATH = _db_toml_path if _db_toml_path.is_absolute() else Path.cwd() / _db_toml_path
 else:
-    # Use cwd (project directory) — each project gets its own DB
-    DB_PATH = Path.cwd() / _db_raw
+    DB_PATH = _DEFAULT_DB
 
 # Embedding
 EMBEDDING_DEVICE = _detect_device()

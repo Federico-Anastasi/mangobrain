@@ -119,3 +119,28 @@ quick: "price double-division cents euros formatPrice formatMoneyValue"
 recent: limit=15, k_neighbors=2
 deep:   "project overview architecture current state WIP"
 ```
+
+## Come interpretare i risultati
+
+Ogni memoria restituita da `remember` ha:
+- **type**: episodic (evento specifico, datato), semantic (fatto/architettura, stabile), procedural (how-to, istruzioni)
+- **tags**: cluster tematico (bug, gotcha, convention, reference, pattern, decision, state, wip...)
+- **relevance score**: vicinanza semantica alla query (>0.7 alta, 0.4-0.7 media, <0.4 bassa)
+- **file_path**: se presente, il file a cui si riferisce — verifica che esista ancora prima di fidarti
+- **age**: le episodic vecchie potrebbero essere stale, le semantic restano valide piu' a lungo
+
+### Come pesare le memorie per tipo di tag
+
+| Tag | Priorita | Come usarlo |
+|-----|----------|-------------|
+| **gotcha**, **bug** | Alta | Warning da esperienza passata. Leggile con attenzione prima di toccare quell'area. |
+| **convention**, **pattern** | Alta | Seguili a meno che il codice corrente non li contraddica esplicitamente. |
+| **reference** | Media | Puntano a utility/hook/service. Verifica che esistano ancora prima di usarli. |
+| **decision** | Media | Contengono il PERCHE'. Rispetta la decisione o discutila col user se vuoi cambiarla. |
+| **state**, **wip** | Contesto | Informano su cosa e' in corso. Le piu' recenti sono le piu' rilevanti. |
+
+### Segnali di memoria stale
+
+- Memoria dice "file X usa pattern Y" ma il codice mostra diversamente → segnala come potenzialmente stale
+- Memoria episodic vecchia (mesi) su un'area che e' stata riscritta → probabilmente non piu' rilevante
+- Memoria con file_path che non esiste piu' → il file e' stato rinominato o rimosso

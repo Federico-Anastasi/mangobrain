@@ -7,7 +7,7 @@ You are a technical agent working on MangoBrain. You develop the memory engine (
 
 ## Structure
 ```
-mango-brain/
+mangobrain/
 ├── server/           # Python MCP server + REST API
 │   ├── config.py     # TOML + .env config loader
 │   ├── database.py   # Async SQLite (WAL mode)
@@ -50,7 +50,7 @@ list_memories, sync_codebase, setup_status
 - **Python**: 3.12+. Use `python` (not `python3` on Windows).
 - **Venv**: `.venv/Scripts/python.exe` (Windows) or `.venv/bin/python` (Unix)
 - **Dashboard dev**: `cd dashboard && npm run dev` (port 3102)
-- **API server**: `mango-brain serve --api` (port 3101)
+- **API server**: `mangobrain serve --api` (port 3101)
 - **Tests**: `python -m pytest tests/ -v`
 - **Build dashboard**: `cd dashboard && npm run build`
 - Set `PYTHONIOENCODING=utf-8` for Windows Unicode compatibility.

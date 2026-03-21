@@ -74,6 +74,8 @@ The user sees the full list: structural prescriptions + content gaps (if Phase 2
 
 #### If the user chooses content gap fill:
 
+**FIRST**: Read `.claude/prompts/mangobrain/reference/memory-definition.md` for quality standards before creating any memories.
+
 1. Evaluate gap size (file count per topic, estimated coverage)
 2. Decide agent distribution:
    - Few small topics (<20 files total): 1 sub-agent for all

@@ -78,7 +78,6 @@ Il mem-manager e' un sub-agent specializzato nella gestione della memoria. Non e
 
 **Cosa NON fa:**
 - Non interagisce con l'utente
-- Non legge codice al di fuori dei file cambiati
 - Non prende decisioni architetturali
 
 ## Quando NON usare la memoria

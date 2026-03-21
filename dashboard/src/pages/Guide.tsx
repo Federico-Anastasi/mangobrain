@@ -82,25 +82,25 @@ export default function Guide() {
           <div>
             <span className="text-slate-500"># Initialize a project</span>
             <br />
-            <span className="text-green-400">mango-brain</span>{" "}
+            <span className="text-green-400">mangobrain</span>{" "}
             <span className="text-white">init --project myproject --path /path/to/project</span>
           </div>
           <div>
             <span className="text-slate-500"># Check system health</span>
             <br />
-            <span className="text-green-400">mango-brain</span>{" "}
+            <span className="text-green-400">mangobrain</span>{" "}
             <span className="text-white">doctor</span>
           </div>
           <div>
             <span className="text-slate-500"># Start the API + dashboard</span>
             <br />
-            <span className="text-green-400">mango-brain</span>{" "}
+            <span className="text-green-400">mangobrain</span>{" "}
             <span className="text-white">serve --api</span>
           </div>
           <div>
             <span className="text-slate-500"># View setup progress</span>
             <br />
-            <span className="text-green-400">mango-brain</span>{" "}
+            <span className="text-green-400">mangobrain</span>{" "}
             <span className="text-white">status --project myproject</span>
           </div>
         </div>

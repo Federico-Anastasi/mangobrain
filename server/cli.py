@@ -125,24 +125,66 @@ def cmd_install(args: argparse.Namespace) -> None:
     if not has_gpu:
         print("  No NVIDIA GPU detected — will use CPU embeddings")
 
-    # ── Step 2: Install PyTorch ──
-    print("\n[2/5] Setting up PyTorch...")
-    needs_torch = False
+    # ── Step 2: Install embedding engine (torch + sentence-transformers) ──
+    print("\n[2/5] Setting up embedding engine...")
+
+    # Check torch
+    torch_installed = False
+    torch_has_cuda = False
     try:
         import torch
-        cuda_ok = torch.cuda.is_available()
-        if has_gpu and not cuda_ok:
-            print(f"  PyTorch {torch.__version__} found but CPU-only — reinstalling with CUDA...")
-            needs_torch = True
-        else:
-            print(f"  PyTorch already installed: {torch.__version__} ({'CUDA' if cuda_ok else 'CPU'})")
+        torch_installed = True
+        torch_has_cuda = torch.cuda.is_available()
+        print(f"  PyTorch {torch.__version__} found ({'CUDA' if torch_has_cuda else 'CPU'})")
     except ImportError:
+        print("  PyTorch not found")
+
+    # Check sentence-transformers
+    st_installed = False
+    try:
+        import sentence_transformers
+        st_installed = True
+        print(f"  sentence-transformers {sentence_transformers.__version__} found")
+    except ImportError:
+        print("  sentence-transformers not found")
+
+    # Decide what to install
+    needs_torch = False
+    use_cuda = False
+
+    if torch_installed and torch_has_cuda and has_gpu and st_installed:
+        print("  Everything looks good — skipping.")
+    elif torch_installed and not torch_has_cuda and has_gpu:
+        # Has torch CPU but GPU available — ask
+        print(f"\n  You have PyTorch (CPU-only) but a GPU is available: {gpu_name}")
+        print("  Options:")
+        print("    1. Reinstall with CUDA (recommended — faster, better quality)")
+        print("       Downloads ~2GB, uses bge-large-en-v1.5 (1024d)")
+        print("    2. Keep CPU version")
+        print("       Uses bge-base-en-v1.5 (768d), ~200MB")
+        choice = input("\n  Choice [1]: ").strip() or "1"
+        if choice == "1":
+            needs_torch = True
+            use_cuda = True
+        # else keep current torch, just ensure sentence-transformers
+    elif not torch_installed:
         needs_torch = True
-        print("  PyTorch not found — installing...")
+        if has_gpu:
+            print(f"\n  GPU detected: {gpu_name}")
+            print("  Options:")
+            print("    1. Install with CUDA (recommended — faster, better quality)")
+            print("       Downloads ~2GB, uses bge-large-en-v1.5 (1024d)")
+            print("    2. Install CPU-only")
+            print("       Downloads ~200MB, uses bge-base-en-v1.5 (768d)")
+            choice = input("\n  Choice [1]: ").strip() or "1"
+            use_cuda = choice == "1"
+        else:
+            use_cuda = False
+            print("  No GPU — installing CPU-only setup...")
 
     if needs_torch:
-        if has_gpu:
-            print(f"  Installing PyTorch with CUDA support for {gpu_name}...")
+        if use_cuda:
+            print(f"\n  Installing PyTorch with CUDA support...")
             subprocess.run(
                 [sys.executable, "-m", "pip", "install", "torch",
                  "--index-url", "https://download.pytorch.org/whl/cu124",
@@ -151,12 +193,32 @@ def cmd_install(args: argparse.Namespace) -> None:
             )
             print("  PyTorch CUDA installed.")
         else:
-            print("  Installing PyTorch (CPU)...")
+            print("\n  Installing PyTorch (CPU)...")
             subprocess.run(
-                [sys.executable, "-m", "pip", "install", "torch"],
+                [sys.executable, "-m", "pip", "install", "torch",
+                 "--index-url", "https://download.pytorch.org/whl/cpu"],
                 check=True,
             )
             print("  PyTorch CPU installed.")
+
+    if not st_installed:
+        print("  Installing sentence-transformers + scipy...")
+        subprocess.run(
+            [sys.executable, "-m", "pip", "install", "sentence-transformers>=2.5",
+             "scipy>=1.12"],
+            check=True,
+        )
+        print("  sentence-transformers installed.")
+
+    # Pre-download the embedding model
+    print("  Verifying embedding model...")
+    try:
+        from server.config import EMBEDDING_MODEL
+        from sentence_transformers import SentenceTransformer
+        SentenceTransformer(EMBEDDING_MODEL)
+        print(f"  Model ready: {EMBEDDING_MODEL}")
+    except Exception as e:
+        print(f"  Warning: could not pre-load model ({e}). It will download on first server start.")
 
     # ── Step 3: Install files ──
     print("\n[3/5] Installing skills, agents, rules, and prompts...")
@@ -190,7 +252,7 @@ def cmd_install(args: argparse.Namespace) -> None:
     print("  Installation complete!")
     print("=" * 60)
     print(f"\n  Next steps:")
-    print(f"  1. Start the dashboard:  mango-brain serve --api")
+    print(f"  1. Start the dashboard:  mangobrain serve --api")
     print(f"     Then open http://localhost:{API_PORT}")
     print(f"  2. Restart Claude Code (to load MCP server)")
     print(f"  3. Run /brain-init in Claude Code")
@@ -268,7 +330,7 @@ def cmd_dashboard(args: argparse.Namespace) -> None:
     """Open the dashboard in the browser."""
     url = f"http://localhost:{API_PORT}"
     print(f"Opening dashboard at {url}")
-    print("(Make sure the API server is running: mango-brain serve --api)")
+    print("(Make sure the API server is running: mangobrain serve --api)")
     webbrowser.open(url)
 
 
@@ -283,7 +345,7 @@ def cmd_status(args: argparse.Namespace) -> None:
         if project:
             steps = await db.get_setup_progress(project)
             if not steps:
-                print(f"Project '{project}' not initialized. Run: mango-brain init --project {project}")
+                print(f"Project '{project}' not initialized. Run: mangobrain init --project {project}")
                 return
             print(f"Setup progress for '{project}':")
             print("-" * 60)
@@ -363,16 +425,12 @@ def _setup_mcp_json(project_path: Path) -> None:
     if "mcpServers" not in config:
         config["mcpServers"] = {}
 
-    # Point to the installed mango-brain's python
+    # Point to the installed mangobrain's python
     python_path = sys.executable.replace("\\", "/")
 
-    db_path = (project_path / "data" / "mangobrain.db").resolve().as_posix()
-    config["mcpServers"]["mango-brain"] = {
+    config["mcpServers"]["mangobrain"] = {
         "command": python_path,
         "args": ["-m", "server"],
-        "env": {
-            "MANGOBRAIN_DB": db_path,
-        },
     }
 
     mcp_json.write_text(json.dumps(config, indent=2) + "\n", encoding="utf-8")
@@ -428,7 +486,7 @@ apply_elaboration, reinforce, decay, stats, diagnose, list_memories, sync_codeba
 def main() -> None:
     """CLI entry point."""
     parser = argparse.ArgumentParser(
-        prog="mango-brain",
+        prog="mangobrain",
         description="MangoBrain — Persistent memory + workflow system for Claude Code",
     )
     sub = parser.add_subparsers(dest="command")

@@ -1,11 +1,14 @@
 ---
 name: task
 description: Orchestrates complete task execution using specialized agents (analyzer, executor, verifier, mem-manager) with MangoBrain memory integration. Use for implementing features, fixing bugs, refactoring.
+argument-hint: <task description or path to task.md file>
 ---
 
 # Skill: /task
 
-Orchestrates task execution using specialized agents. Each agent knows project conventions (reads CLAUDE.md + rules) and produces structured output. MangoBrain memory integration provides persistent context — patterns, gotchas, decisions from past sessions inform every phase.
+Orchestrates task execution using specialized agents. Each agent reads CLAUDE.md +
+rules (knows project conventions) and produces structured output. MangoBrain memory
+provides persistent context — patterns, gotchas, decisions from past sessions.
 
 Main is the orchestrator. Agents are the specialists.
 
@@ -15,617 +18,25 @@ Main is the orchestrator. Agents are the specialists.
 
 ### Main vs Agent Responsibilities
 
-| Main does directly | ALWAYS delegate to agents |
-|-------------------|--------------------------|
-| `Read`, `Grep`, `Glob` — quick lookups | Modify files -> **executor** |
-| User interaction — clarifications | Build/test -> **verifier** |
-| `Task` — coordinate agents | Deep analysis -> **analyzer** |
-| Create PLAN (atomic task list) | Memory operations -> **mem-manager** |
-| `remember()` — memory retrieval (ANALYZE) | |
+| Main does directly                          | ALWAYS delegate to agents            |
+|---------------------------------------------|--------------------------------------|
+| `Read`, `Grep`, `Glob` — quick lookups      | Modify files → **executor**          |
+| User interaction — clarifications            | Build/test → **verifier**            |
+| `Task` — coordinate agents                  | Deep analysis → **analyzer**         |
+| Create PLAN (atomic task list)               | Memory operations → **mem-manager**  |
+| `remember()` — memory retrieval (ANALYZE)    |                                      |
 
 ### Phase Rules
 
-- **ANALYZE**: ALWAYS run (skip only if <10 lines, 1 file, obvious pattern). Start with MangoBrain `remember()` multi-query strategy. Spawn analyzer(s). Question: **How much work?** Most tasks -> 1 analyzer. Large multi-domain (50+ files) or FE+BE -> 2-3 parallel.
-- **PLAN**: Main creates atomic task list + decides agent distribution. Criterion: **saturate agents (~60k load)**. Assign multiple tasks to same agent. Large sequential tasks -> 1-2 executors in sequence (not parallel). Show plan -> ask confirmation (text input) or auto-approve (task.md input).
-- **EXECUTE**: Question: **Size of changes?** 1 line across 10 files -> 1 executor. 10 files from scratch -> 2 executors (if disconnected). Most tasks -> 1-2 executors TOTAL. Clearly large -> 2-3 parallel. Max 2 retries, then escalate to user.
-- **VERIFY**: Spawn verifier ALWAYS (even for refactoring). Confidence-based retry logic.
+- **ANALYZE**: ALWAYS run (skip only if <10 lines, 1 file, obvious pattern). Start with `remember()` multi-query. Spawn analyzer(s). Most tasks → 1 analyzer. Large FE+BE → 2-3 parallel.
+- **PLAN**: Create atomic task list + decide agent distribution. Saturate agents (~60k load). Show plan → ask confirmation (text input) or auto-approve (task.md input).
+- **EXECUTE**: 1 line across 10 files → 1 executor. 10 files from scratch → 2 executors (if disconnected). Most tasks → 1-2 executors TOTAL. Max 2 retries, then escalate.
+- **VERIFY**: Spawn verifier ALWAYS (even for refactoring). Confidence-based retry.
 - **CLOSE**: Spawn mem-manager ALWAYS. Memorizes new knowledge, syncs changed files, registers WIP if incomplete.
 
-**Agent model rule**: ALWAYS specify `model: "sonnet"` when spawning ANY agent. No exceptions.
+**Agent model rule**: ALWAYS specify `model: "sonnet"` when spawning ANY agent.
 
-### Saturation Strategy (CRITICAL)
-
-**The right question: How much work? Can 1 agent handle it or do we need to split?**
-
-Each agent should be saturated at ~40-60k tokens of work. Assign multiple tasks to the same agent rather than spawning many agents with tiny tasks.
-
-| Task Size | Analyzers | Executors | Notes |
-|-----------|-----------|-----------|-------|
-| Small fix (same pattern, <10 files) | 1 | 1 | Most common |
-| Medium feature (10 files, 30-40k) | 1 | 1 | Saturates 1 executor |
-| Large feature, single domain (20 files) | 1 | 1-2 seq | Split if >60k |
-| Large FE + BE (25+ files) | 2 parallel | 2 parallel | Domains disconnected |
-| Sequential deps (migration + update) | 1 | 2 sequential | Phase 2 waits for Phase 1 |
-
-**Practical Rule**:
-- Most tasks -> **1 analyzer + 1 executor** (total 2)
-- Clearly large -> **1 analyzer + 2 executor** (sequence or parallel)
-- Very large (FE+BE) -> **2 analyzer + 2 executor** (parallel)
-- **Never 1 agent per file** — saturate agents with multiple tasks (~60k)
-
----
-
-## Trigger
-
-```
-/task <task description>
-```
-
-Or (from `/discuss` output):
-
-```
-/task <path-to-task-file.md>
-```
-
-Examples:
-- `/task Add email validation to registration form` (text input)
-- `/task Fix bug: price filter not working` (text input)
-- `/task .claude/tasks/2026-01-24-1430-add-google-oauth.md` (task file from /discuss)
-
----
-
-## Input Detection & Handling
-
-**BEFORE starting the workflow, determine input type:**
-
-### Input Type 1: Text Description (Standard Workflow)
-
-If the input does NOT end with `.md`, it is a normal text description.
-
-**Workflow**: `INTAKE (Q&A) -> ANALYZE -> PLAN -> EXECUTE -> VERIFY -> CLOSE`
-
-Behavior:
-- INTAKE: Ask user questions to clarify requirements
-- ANALYZE: Spawn analyzer agent(s) to explore codebase
-- PLAN: Create plan and ask for confirmation
-- EXECUTE/VERIFY/CLOSE: as always
-
-### Input Type 2: Task File from /discuss (Optimized)
-
-If the input ends with `.md`, it is a task file generated by `/discuss`.
-
-**Workflow**: `INTAKE (read file) -> ANALYZE -> PLAN -> EXECUTE -> VERIFY -> CLOSE`
-
-Behavior:
-
-#### INTAKE Phase (read file instead of asking)
-
-**CRITICAL**: Task.md is a "decisional record" from /discuss, NOT an implementation plan. Contains WHAT/WHY decisions, but /task must do its own ANALYZE and PLAN autonomously.
-
-1. **Validate path**: File must exist, else error.
-2. **Read and parse** sections: Goal, Context, Chosen Approach, Requirements, Constraints, Known Risks, Verification Criteria, Hints.
-3. **Check freshness**: If >24h old, warn user and ask whether to proceed.
-4. **NO questions to user** (already answered in `/discuss`).
-5. **Task.md is BASELINE, not substitute for ANALYZE**: Hints suggest where to look, but ANALYZE MUST verify fresh codebase. Code may have changed since /discuss.
-
-**In summary**: Task.md accelerates INTAKE (no Q&A), auto-approves PLAN, and enriches context (approach, risks, constraints). All other phases run identically. Task.md is a reference, NOT a substitute for ANALYZE/PLAN/EXECUTE.
-
----
-
-## Complete Workflow
-
-```
-INTAKE -> ANALYZE -> PLAN -> EXECUTE -> VERIFY -> CLOSE -> DONE
-```
-
-| Phase | Key Actions | Output |
-|-------|-------------|--------|
-| **INTAKE** | Parse request. Text: Q&A. Task.md: read file. | Clear task description |
-| **ANALYZE** | Main: remember() multi-query. Spawn analyzer(s) with memory context. | Files, patterns, risks, memory insights |
-| **PLAN** | Create atomic task list. Decide agent distribution. Text: ask confirm. Task.md: auto-approve. | Approved plan |
-| **EXECUTE** | Spawn executor(s). Pass analyzer output + memory constraints. Parallel if independent, sequential if dependent. | Modified files, status |
-| **VERIFY** | Spawn verifier. Build/test/lint from CLAUDE.md. Verifier calls remember(quick) for known issues. Confidence-based retry. | Verification report |
-| **CLOSE** | Spawn mem-manager. memorize() new knowledge, sync_codebase(), update_memory(), register WIP if incomplete. | Memory ops report |
-
----
-
-## Skip Logic - STRICT RULES
-
-**ANALYZE can be skipped ONLY IF**:
-
-| Criterion | OK Example | NOT OK Example |
-|-----------|------------|----------------|
-| Change <10 lines in 1 file | Change hardcoded color -> semantic | Add form validation |
-| Identical existing pattern | Duplicate existing component | New feature similar to X |
-| Main spawned analyzer <5min ago for same file | Sequential task same context | New domain task |
-
-**IMPORTANT**: If you skip ANALYZE, you MUST document in the prompt WHY it is trivial.
-
-**PLAN can be informal ONLY IF**:
-- Task has 1 single step (1 file, 1 change)
-- Quick inline confirm: "I'll modify X in Y, ok?"
-
-**VERIFY can NEVER be skipped** (not even for refactoring)
-
-**CLOSE can NEVER be skipped** (memory is sacred)
-
-**User says "go/proceed":**
-- Skips ONLY the explicit post-PLAN confirmation
-- Does NOT skip ANALYZE/VERIFY/CLOSE
-
-**Analysis-only task (research/exploration)**:
-- Skip EXECUTE and VERIFY
-- Go directly to CLOSE after ANALYZE
-
----
-
-## Phase 2: ANALYZE — MangoBrain Memory Integration
-
-### Step 1: Main retrieves memory context BEFORE spawning analyzers
-
-**This is the most important step.** Memory retrieval happens in Main, not in agents, so Main can pass relevant memories as context to analyzers.
-
-#### Multi-Query Strategy
-
-Read the task description and identify 2-4 distinct technical areas. Then:
-
-**1x deep — big picture:**
-```
-remember(query="[max 10 keywords from task]", mode="deep", project="{PROJECT}")
-```
-Captures: cross-cutting patterns, conventions, recurring gotchas. ~20 results.
-
-**2-4x quick — one per technical area:**
-```
-remember(query="[specific names: components, hooks, services, files]", mode="quick", project="{PROJECT}")
-```
-Captures: specific details per cluster. ~6 results each.
-
-#### Why This Works
-
-Each query hits a different cluster in the associative graph. A single generic deep query pulls from 1-2 clusters and misses the rest. 3 targeted quick queries cover 3 different clusters.
-
-#### Query Formulation Rules
-
-**Keywords > natural language:**
-```
-GOOD: "formatPrice cents euros conversion gotcha"
-BAD:  "how does price formatting work in the system"
-```
-
-**Always use proper names:**
-```
-GOOD: "useStripeConnect ConnectAccountManagement onboarding embedded"
-BAD:  "the payment onboarding system"
-```
-
-**Mix technical + domain:**
-```
-GOOD: "booking wizard localStorage state persistence gotcha"
-BAD:  "problems with the booking wizard"
-```
-
-#### Example: Memory Retrieval for Task
-
-```
-Task: "Fix price display bug in order sidebar"
-
-Main does:
-  1. deep:  remember("order sidebar price display bug fix UX mobile", mode="deep", project="{PROJECT}")
-  2. quick: remember("formatPrice cents conversion formatMoneyValue", mode="quick", project="{PROJECT}")
-  3. quick: remember("OrderSidebar PaymentStep price calculation", mode="quick", project="{PROJECT}")
-
-Results: ~32 memories covering price patterns, known gotchas, sidebar architecture.
-Main filters high-relevance (>0.7) and passes as context to analyzer.
-```
-
-### Step 2: Spawn analyzer(s) with memory context
-
-Pass the retrieved memories as structured context in the analyzer prompt. The analyzer also has access to `remember(mode="quick")` for specific lookups during exploration.
-
-#### Analyzer Prompt Template
-
-```yaml
-subagent_type: "analyzer"
-model: "sonnet"
-tools: [Read, Grep, Glob, mcp__mango-brain__remember]
-description: "Analyze {area} with memory context"
-prompt: |
-  # STEP 1: Read project conventions
-  Read these files first:
-  - "CLAUDE.md" and all files in ".claude/rules/"
-
-  # STEP 2: Memory context from MangoBrain
-  Main retrieved these relevant memories for this task:
-  ---
-  {formatted_memories}
-  ---
-  Use this context to inform your analysis. These are patterns, gotchas,
-  and decisions from past sessions that are relevant to this task.
-
-  # STEP 3: Your own memory lookups
-  You have access to MangoBrain via remember() MCP tool.
-  Use remember(query, project="{PROJECT}", mode="quick") for specific lookups
-  during your analysis. For example:
-  - Before exploring an unfamiliar area
-  - When you find something that might be a known issue
-  - When you need to understand a specific pattern or convention
-
-  Query tips: Use technical keywords, component names, file names.
-  NOT natural language sentences.
-
-  # STEP 4: Analysis task
-  {task_description}
-
-  Provide:
-  - relevant_files: [list with line numbers and snippets]
-  - existing_patterns: [patterns to follow]
-  - dependencies: [what depends on what]
-  - memory_insights: [relevant findings from MangoBrain memories]
-  - risks: [potential issues]
-  - suggestions: [recommendations]
-
-expected_output:
-  analysis:
-    findings: [{file, lines, description, relevant_code, pattern}]
-    dependencies: [...]
-    existing_patterns: [...]
-    memory_insights: [relevant memories that informed analysis]
-    risks: [...]
-    suggestions: [...]
-    confidence_level: "high|medium|low"
-```
-
----
-
-## Phase 3: PLAN
-
-### Plan Creation Rules
-
-Based on analyzer output, Main creates:
-
-1. **Atomic task list**: Each task = 1-2 files max, clear description
-2. **Agent distribution**: How many executors? Parallel or sequential?
-3. **Memory-informed constraints**: Include relevant gotchas/patterns from memories
-
-### Plan Output Format
-
-```
-PLAN for: {task title}
-
-Memory insights applied:
-- [relevant pattern/gotcha from MangoBrain that affects the plan]
-- [known issue to avoid]
-
-Atomic Tasks:
-1. {description} -> {file(s)}
-2. {description} -> {file(s)}
-3. {description} -> {file(s)}
-
-Agent Distribution:
-- executor_1: Tasks 1-3 (~{X}k tokens estimated)
-  [OR]
-- executor_1: Tasks 1-2 (~{X}k tokens)
-- executor_2: Tasks 3 (~{Y}k tokens) [parallel|after executor_1]
-
-Estimated total: {N} agents
-```
-
-### Confirmation Logic
-
-**Text input**: Show plan, ask "Proceed? (ok/modify/stop)"
-**Task.md input**: Show plan, auto-approve. Print: "Plan approved (from /discuss session). Proceeding with execution..."
-
----
-
-## Phase 4: EXECUTE
-
-### Executor Agent Rules
-
-**CRITICAL**: Executors are 100% focused on code. They do NOT have memory tools. They receive all context they need from Main (analyzer output + memory insights).
-
-#### Executor Prompt Template
-
-```yaml
-subagent_type: "executor"
-model: "sonnet"
-tools: [Read, Edit, Write, Bash]
-description: "Execute {task_description}"
-prompt: |
-  # STEP 1: Read project conventions
-  Read these files first:
-  - "CLAUDE.md" and all files in ".claude/rules/"
-
-  # STEP 2: Context from analyzer
-  {analyzer_findings}
-
-  # STEP 3: Memory-informed constraints
-  From MangoBrain (past sessions):
-  ---
-  {relevant_memories_for_this_task}
-  ---
-  Follow these patterns and avoid these gotchas.
-
-  # STEP 4: Your task
-  task_id: "{task_id}"
-  domain: "{frontend|backend|fullstack}"
-
-  instruction: |
-    {detailed_instruction}
-
-  # STEP 5: Requirements and constraints
-  {requirements_from_taskfile_if_any}
-  {constraints_from_taskfile_if_any}
-
-expected_output:
-  files_modified: [list of files]
-  changes_summary: "what was done"
-  status: "success|partial|failed"
-  notes: "any issues encountered"
-```
-
-### Executor Error Handling
-
-```
-executor status: failed
-         |
-    Analyze error
-         |
-    Create new task with fix_suggestion
-         |
-    Respawn executor (retry 1)
-         |
-    If still fail -> ask user
-```
-
----
-
-## Phase 5: VERIFY
-
-### Verifier Agent Rules
-
-Verifier has access to `remember(mode="quick")` to check for known issues and patterns.
-
-#### Verifier Prompt Template
-
-```yaml
-subagent_type: "verifier"
-model: "sonnet"
-tools: [Bash, Read, mcp__mango-brain__remember]
-description: "Verify task execution"
-prompt: |
-  # STEP 1: Read project conventions
-  Read these files first:
-  - "CLAUDE.md" and all files in ".claude/rules/"
-
-  # STEP 2: Memory lookups
-  You have access to MangoBrain via remember() MCP tool.
-  Use remember(query, project="{PROJECT}", mode="quick") to check for:
-  - Known issues with the modified files/components
-  - Past verification failures and their causes
-  - Build/test gotchas
-
-  Query tips: Use technical keywords, component names, file names.
-
-  # STEP 3: Verification task
-  files_modified:
-    {list_of_modified_files}
-
-  task: |
-    Verify the modifications are correct:
-
-    1. Build: Run build commands from CLAUDE.md
-    2. Tests: Run test suites from CLAUDE.md
-    3. Lint/Type check: Run lint/type commands from CLAUDE.md
-    4. Runtime: Check for runtime errors if applicable
-
-    Read CLAUDE.md for the exact build/test/lint commands for this project.
-
-    {verification_criteria_from_taskfile_if_any}
-
-    If verification fails, provide:
-    - What failed (exact error)
-    - Why it failed (root cause analysis)
-    - fix_suggestion (detailed fix)
-    - confidence_in_fix: "high|medium|low"
-      - high: You know exactly what to change and where
-      - medium: You have a good idea but it might need adjustment
-      - low: The issue is complex or unclear
-
-expected_output:
-  verification:
-    build: "pass|fail"
-    tests: "{X} passed / {Y} failed"
-    lint: "pass|fail"
-    runtime: "clean|errors"
-    overall: "pass|fail"
-    fix_suggestion: "..." (if fail)
-    confidence_in_fix: "high|medium|low" (if fail)
-    memory_insights: [any relevant memories found during verification]
-```
-
-### Verification Retry Logic
-
-```
-verifier result: FAIL
-         |
-    Read confidence_in_fix
-         |
-    +---> high -----> AUTO RETRY (spawn executor with fix_suggestion)
-    |                      |
-    |                      v
-    |                 Re-verify (cycle 2)
-    |                      |
-    |                 pass -> done
-    |                 fail -> ESCALATE to user
-    |
-    +---> medium ----> RETRY 1x (spawn executor with fix_suggestion)
-    |                      |
-    |                      v
-    |                 Re-verify (cycle 2)
-    |                      |
-    |                 pass -> done
-    |                 fail -> ESCALATE to user
-    |
-    +---> low -------> NO RETRY -> ESCALATE to user immediately
-```
-
-**Max 2 EXECUTE->VERIFY cycles total.** After 2 failures, ALWAYS escalate to user.
-
-### Escalation Format
-
-```
-VERIFICATION FAILED after {N} attempts.
-
-Last error:
-  {error_description}
-
-What was tried:
-  - Attempt 1: {what_was_done}
-  - Attempt 2: {what_was_done}
-
-Verifier analysis:
-  {root_cause_analysis}
-
-Options:
-  1. I can try a different approach: {alternative_suggestion}
-  2. You can fix manually and re-run /task
-  3. Skip verification and proceed to CLOSE (not recommended)
-```
-
----
-
-## Phase 6: CLOSE — MangoBrain Memory Manager
-
-### mem-manager Agent Rules
-
-**CRITICAL**: mem-manager is the librarian for this task. It has full access to MangoBrain tools. It does NOT modify code files.
-
-#### mem-manager Responsibilities
-
-1. **memorize()**: Store new knowledge discovered during this task
-   - Patterns found
-   - Gotchas encountered
-   - Decisions made and why
-   - Bug fixes and root causes
-   - New conventions established
-
-2. **sync_codebase()**: Update file-linked memories for changed files
-   - Ensures MangoBrain knows about structural changes
-   - Updates file_path and code_signature references
-
-3. **update_memory()**: Correct existing memories if they became stale
-   - If this task changed behavior that contradicts an existing memory
-
-4. **Register WIP**: If task is incomplete, memorize a WIP memory
-   - What was done so far
-   - What remains to be done
-   - Why it was stopped (if applicable)
-
-#### mem-manager Prompt Template
-
-```yaml
-subagent_type: "mem-manager"
-model: "sonnet"
-tools: [Read, mcp__mango-brain__memorize, mcp__mango-brain__sync_codebase,
-        mcp__mango-brain__update_memory, mcp__mango-brain__remember]
-description: "Update MangoBrain memory for completed task"
-prompt: |
-  # Your Role
-  You are the MangoBrain memory manager (librarian) for this task session.
-  Your job is to persist valuable knowledge into the memory system so future
-  sessions benefit from what was learned today.
-
-  # STEP 1: Read memory definition
-  Read: "mango-brain/prompts/memory-definition.md"
-  This defines what makes a good memory. Follow it strictly.
-
-  # STEP 2: Understand what happened
-  Task completed: "{task_title}"
-  Project: "{PROJECT}"
-
-  Files modified:
-  {list_of_modified_files}
-
-  What was done:
-  {execution_summary}
-
-  Verification result:
-  {verification_result}
-
-  Key decisions/findings during this task:
-  {decisions_and_findings}
-
-  Task source: {text_input | task_file: {filename}}
-
-  # STEP 3: Check existing memories
-  Use remember(query="{keywords from task}", project="{PROJECT}", mode="quick")
-  to check what memories already exist for the areas touched.
-
-  Do NOT create duplicate memories. If an existing memory covers the same
-  knowledge, either:
-  - Skip it (already known)
-  - Use update_memory() to refine/correct it
-  - Use memorize() with a supersedes relation to the old one
-
-  # STEP 4: Create new memories
-  For each distinct piece of knowledge from this task, call memorize():
-
-  Guidelines:
-  - Content in English, 2-5 lines, dense and precise
-  - One fact/decision/pattern/gotcha per memory (granular, not aggregated)
-  - Assign type: episodic (specific event), semantic (general knowledge),
-    procedural (how-to/convention)
-  - Add 3-6 lowercase tags
-  - Define relations to related memories where relevant
-  - Set project="{PROJECT}"
-
-  What to memorize:
-  - Bug root causes and fixes (episodic)
-  - New patterns established (semantic/procedural)
-  - Gotchas discovered (semantic)
-  - Architecture decisions made (semantic)
-  - Conventions followed or established (procedural)
-  - File structure changes (semantic)
-
-  What NOT to memorize:
-  - Trivial changes (typo fixes, formatting)
-  - Things already well-documented in code comments
-  - Temporary workarounds that will be removed soon
-  - Duplicate of existing memories
-
-  # STEP 5: Sync codebase
-  For each file that was structurally modified (new functions, changed signatures,
-  new components, schema changes), call:
-  sync_codebase(file_paths=[list], project="{PROJECT}")
-
-  Skip files with only minor content changes (text updates, style tweaks).
-
-  # STEP 6: Register WIP (if task incomplete)
-  If the task was NOT fully completed, create a WIP memory:
-
-  memorize(
-    content="WIP: {task_title}. Completed: {what_done}. Remaining: {what_left}. Blocked by: {reason}.",
-    memory_type="episodic",
-    tags=["wip", "incomplete", ...relevant_tags],
-    project="{PROJECT}"
-  )
-
-  # STEP 7: Report
-  Provide a summary of all memory operations performed.
-
-expected_output:
-  memory_ops:
-    memories_created: [{id, type, summary}]
-    memories_updated: [{id, change}]
-    files_synced: [list]
-    wip_registered: true|false
-    total_operations: N
-```
-
----
-
-## Agent Tool Access Summary
+### Agent Tool Access
 
 | Agent | Read | Grep | Glob | Edit | Write | Bash | remember | memorize | sync_codebase | update_memory |
 |-------|------|------|------|------|-------|------|----------|----------|---------------|---------------|
@@ -634,58 +45,393 @@ expected_output:
 | **verifier** | Y | - | - | - | - | Y | Y (quick) | - | - | - |
 | **mem-manager** | Y | - | - | - | - | - | Y | Y | Y | Y |
 
-**Key design decisions**:
-- **executor has NO memory tools**: 100% code focus, receives all context from Main
-- **analyzer has remember(quick)**: Can do targeted lookups during exploration
-- **verifier has remember(quick)**: Can check for known issues/gotchas
-- **mem-manager has full memory access**: Sole agent responsible for persisting knowledge
+Key design:
+- **executor** has NO memory tools — 100% code focus, receives all context from Main
+- **analyzer** has `remember(quick)` — targeted lookups during exploration
+- **verifier** has `remember(quick)` — check for known issues/gotchas
+- **mem-manager** has full memory access — sole agent for persisting knowledge
+
+### Saturation Strategy
+
+Each agent should handle ~40-60k tokens of work. Assign multiple tasks to the same
+agent rather than spawning many agents with tiny tasks.
+
+| Task Size | Analyzers | Executors | Notes |
+|-----------|-----------|-----------|-------|
+| Small fix (same pattern, <10 files) | 1 | 1 | Most common case |
+| Medium feature (10 files, 30-40k) | 1 | 1 | Saturates 1 executor |
+| Large feature, single domain (20 files) | 1 | 1-2 seq | Split only if >60k |
+| Large FE + BE (25+ files, domains disconnected) | 2 parallel | 2 parallel | FE and BE independent |
+| Migration + dependent update | 1 | 1 | Keep together — executor retains context from migration |
+
+**When to split executors**: Only when domains are truly disconnected (FE vs BE).
+If tasks are dependent (migration → backend update), keep them in one executor —
+it retains context from the first task and stays coherent. The only exception: if
+migration + BE update + FE update are all large, group migration with BE (same
+domain) and give FE to a separate executor.
+
+**Never 1 agent per file** — saturate agents with multiple tasks.
 
 ---
 
-## Context for ALL Agents (CRITICAL)
+## Trigger
 
-**RULE 1 — Model**: When spawning ANY agent (analyzer, executor, verifier, mem-manager), **MUST ALWAYS** specify `model: "sonnet"` explicitly. No exceptions.
-
-**RULE 2 — Project context files**: When spawning ANY agent, **MUST ALWAYS** instruct it to read project context files first.
-
-**Files every agent must read**:
 ```
-- "CLAUDE.md" (project root)
-- All files in ".claude/rules/" (project conventions and rules)
+/task <task description>
+/task <path-to-task-file.md>
 ```
 
-**Why this is critical**: Every agent starts with fresh memory. Without these files, it does not know project conventions, existing patterns, or development rules.
-
-**RULE 3 — MCP tool names**: When granting memory tools to agents, use the full MCP tool names:
-- `mcp__mango-brain__remember`
-- `mcp__mango-brain__memorize`
-- `mcp__mango-brain__sync_codebase`
-- `mcp__mango-brain__update_memory`
+Examples:
+- `/task Add email validation to registration form`
+- `/task Fix bug: price filter not working`
+- `/task .claude/tasks/2026-03-14-1430-add-google-oauth.md`
 
 ---
 
-## Error Handling
+## Input Detection
 
-### Executor Fails
+**BEFORE starting, determine input type:**
+
+### Type 1: Text Description
+
+Input does NOT end with `.md`.
+
+**Workflow**: `INTAKE (Q&A) → ANALYZE → PLAN → EXECUTE → VERIFY → CLOSE`
+
+- INTAKE: Ask user questions to clarify requirements
+- PLAN: Show plan, ask for confirmation
+
+### Type 2: Task File from /discuss
+
+Input ends with `.md`.
+
+**Workflow**: `INTAKE (read file) → ANALYZE → PLAN → EXECUTE → VERIFY → CLOSE`
+
+- INTAKE: Read and parse task.md (no questions — already answered in /discuss)
+- PLAN: Auto-approve (already confirmed in /discuss)
+
+#### INTAKE for Task File
+
+**CRITICAL**: Task.md is a "decisional record" from /discuss. Contains WHAT/WHY
+decisions, but /task must do its own ANALYZE and PLAN autonomously.
+
+1. **Validate path**: File must exist
+2. **Read and parse** sections: Goal, Context, Memory Context, Chosen Approach,
+   Requirements, Constraints, Known Risks, Verification Criteria, Hints
+3. **Check freshness**: If >24h old, warn user and ask whether to proceed
+4. **No questions to user** (already answered in /discuss)
+5. **Task.md is reference, not substitute**: Hints suggest where to look,
+   but ANALYZE MUST verify fresh codebase. Code may have changed.
+
+### Comparison
+
+| Phase | Text Input | Task File Input |
+|-------|------------|-----------------|
+| **INTAKE** | Q&A with user | Read file (no questions) |
+| **ANALYZE** | Identical | Identical (task.md = hints, not substitute) |
+| **PLAN** | Ask user confirmation | Auto-approve |
+| **EXECUTE** | Identical | + Requirements/Constraints from task.md |
+| **VERIFY** | Identical | + Verification criteria from task.md |
+| **CLOSE** | Identical | Mentions task.md as source |
+
+---
+
+## Workflow Overview
+
+| Phase | Key Actions | Output |
+|-------|-------------|--------|
+| **INTAKE** | Parse request. Text: Q&A. Task.md: read file. | Clear task description |
+| **ANALYZE** | Main: `remember()` multi-query. Spawn analyzer(s) with memory context. | Files, patterns, risks, memory insights |
+| **PLAN** | Create atomic task list. Decide agent distribution. Text: ask confirm. Task.md: auto-approve. | Approved plan |
+| **EXECUTE** | Spawn executor(s). Pass analyzer output + memory constraints. | Modified files, status |
+| **VERIFY** | Spawn verifier. Build/test/lint. Verifier calls `remember(quick)` for known issues. | Verification report |
+| **CLOSE** | Spawn mem-manager. `memorize()`, `sync_codebase()`, `update_memory()`, register WIP. | Memory ops report |
+
+---
+
+## Skip Logic — Strict Rules
+
+| Phase | Can skip? | Only if... |
+|-------|-----------|------------|
+| **ANALYZE** | Rarely | <10 lines, 1 file, obvious pattern. Must document WHY. |
+| **PLAN** | Informal only | 1 step, 1 file. Quick inline confirm. |
+| **VERIFY** | NEVER | Not even for refactoring. |
+| **CLOSE** | NEVER | Memory is sacred. |
+
+**User says "go/proceed"**: Skips ONLY the post-PLAN confirmation. Does NOT skip
+ANALYZE/VERIFY/CLOSE.
+
+**Analysis-only task** (research/exploration): Skip EXECUTE and VERIFY. Go directly
+to CLOSE after ANALYZE.
+
+---
+
+## Phase 2: ANALYZE — Memory + Code Exploration
+
+### Step 1: Main retrieves memory context
+
+**This happens BEFORE spawning analyzers.** Main does the retrieval so it can pass
+relevant context to agents.
+
+Run the multi-query strategy (see `mangobrain-remember` rule for query formulation):
 
 ```
-executor status: failed -> Analyze error -> Create fix task -> Respawn (retry 1)
-If still fail -> ask user
+# 1x deep — big picture
+remember(query="[max 10 keywords from task]", mode="deep", project="{PROJECT}")
+
+# 2-4x quick — one per technical area
+remember(query="[specific names: components, hooks, services, files]", mode="quick", project="{PROJECT}")
 ```
 
-### Verifier Fails (see Verification Retry Logic above)
+Filter results by relevance (>0.7) and format as context for analyzers.
 
-### Analyzer Finds Nothing
+### Step 2: Spawn analyzer(s) with memory context
+
+Pass retrieved memories as structured context. Analyzers also have
+`remember(mode="quick")` for additional lookups during exploration.
+
+```yaml
+subagent_type: "analyzer"
+model: "sonnet"
+description: "Analyze [area] with memory context"
+prompt: |
+  Read CLAUDE.md and all .claude/rules/ files first.
+
+  Memory context from MangoBrain (relevant to this task):
+  ---
+  [Paste high-relevance memories here]
+  ---
+
+  Task: [What to analyze]
+  Focus: [Specific files/areas]
+
+  You have access to remember(mode="quick") for additional lookups.
+  Report findings in structured YAML (see your agent definition).
+```
+
+For FE+BE tasks, spawn 2 analyzers in parallel with domain-specific briefs.
+
+---
+
+## Phase 3: PLAN
+
+Based on analyzer output + memory insights, Main creates:
+
+1. **Atomic task list**: Each task = 1-2 files max, clear description
+2. **Agent distribution**: How many executors? Parallel or sequential?
+3. **Memory-informed constraints**: Relevant gotchas/patterns from memories
+
+### Plan Format
 
 ```
-analyzer: "not found" -> Ask user for clarifications OR proceed with declared assumptions
+PLAN for: {task title}
+
+Memory insights applied:
+- [relevant pattern/gotcha that affects the plan]
+
+Atomic Tasks:
+1. {description} → {file(s)}
+2. {description} → {file(s)}
+
+Agent Distribution:
+- executor_1: Tasks 1-3 (~Xk tokens)
 ```
 
-### MangoBrain Tools Fail
+### Confirmation
+
+**Text input**: Show plan, ask "Proceed? (ok/modify/stop)"
+**Task.md input**: Show plan, auto-approve: "Plan approved (from /discuss). Proceeding..."
+
+---
+
+## Phase 4: EXECUTE
+
+### Spawning Executors
+
+**CRITICAL**: Executors have NO memory tools. They receive all context from Main
+(analyzer output + memory insights).
+
+```yaml
+subagent_type: "executor"
+model: "sonnet"
+description: "Execute {task_description}"
+prompt: |
+  Read CLAUDE.md and all .claude/rules/ files first.
+
+  Context from analyzer:
+  [Paste analyzer findings for this task]
+
+  Memory-informed constraints (from MangoBrain):
+  ---
+  [Relevant memories: patterns to follow, gotchas to avoid]
+  ---
+
+  Your task:
+  task_id: "{task_id}"
+  domain: "{frontend|backend|fullstack}"
+  instruction: |
+    [Detailed instruction]
+  [requirements and constraints from task.md if applicable]
+```
+
+### Error Handling
 
 ```
-MCP tool error -> Log warning -> Continue without memory -> NEVER block task execution
-Memory is valuable but NOT blocking
+executor fails → Analyze error → Create fix task → Respawn (retry 1)
+Still fails → Ask user
+```
+
+---
+
+## Phase 5: VERIFY
+
+### Spawning Verifier
+
+Verifier has `remember(mode="quick")` to check for known issues.
+
+```yaml
+subagent_type: "verifier"
+model: "sonnet"
+description: "Verify task execution"
+prompt: |
+  Read CLAUDE.md and all .claude/rules/ files first.
+
+  You have access to remember(mode="quick") for known issues.
+  Query for: build errors, known gotchas in modified files/areas.
+
+  Files modified: [list]
+  Task summary: [what was done]
+
+  Verify: build, typecheck, lint, tests, runtime logs.
+  Read CLAUDE.md for exact build/test/lint commands.
+  [verification criteria from task.md if applicable]
+
+  If failure: provide diagnostic_opinion with confidence_in_fix.
+```
+
+### Verification Retry Logic
+
+| confidence_in_fix | Action |
+|-------------------|--------|
+| **high** | AUTO RETRY: spawn executor with fix_suggestion. Re-verify. If still fail → ESCALATE. |
+| **medium** | RETRY 1x: spawn executor with fix_suggestion. Re-verify. If still fail → ESCALATE. |
+| **low** | NO RETRY. ESCALATE to user immediately. |
+
+**Max 2 EXECUTE→VERIFY cycles total.** After 2 failures, ALWAYS escalate.
+
+### Escalation Format
+
+```
+VERIFICATION FAILED after {N} attempts.
+
+Last error: {error}
+What was tried: {attempts}
+Verifier analysis: {root cause}
+
+Options:
+1. I can try a different approach: {alternative}
+2. You can fix manually and re-run /task
+3. Skip verification and proceed to CLOSE (not recommended)
+```
+
+---
+
+## Phase 6: CLOSE — Memory Manager
+
+### Spawning mem-manager
+
+**CRITICAL**: mem-manager is the librarian. Full MangoBrain access. Does NOT modify code.
+
+```yaml
+subagent_type: "mem-manager"
+model: "sonnet"
+description: "Update MangoBrain memory for completed task"
+prompt: |
+  Read the memory definition reference file first
+  (.claude/prompts/mangobrain/reference/memory-definition.md or equivalent).
+
+  Task completed: "{task_title}"
+  Project: "{PROJECT}"
+  Project path: "{PROJECT_PATH}"
+  Task source: {text input | task file: {filename}}
+
+  Files modified: [list from executor output]
+
+  What was done: [execution summary]
+
+  Verification result: [pass/fail + details]
+
+  Key decisions/findings: [decisions made during this task]
+
+  WIP (if incomplete): [what remains, blockers]
+
+  Your workflow:
+  1. remember(quick) to check existing memories in affected areas
+  2. memorize() new knowledge (patterns, gotchas, decisions, bugs)
+  3. sync_codebase(changed_files) to detect stale/orphan memories
+  4. Handle stale: update_memory() or leave if still accurate
+  5. Register session state: completed work + WIP if applicable
+```
+
+---
+
+## MangoBrain Failure Handling
+
+MangoBrain tools may fail (server down, DB locked, timeout). When this happens,
+**do NOT silently continue** — the user must know and decide.
+
+| Phase | If MangoBrain fails | Action |
+|-------|---------------------|--------|
+| ANALYZE (Main remember) | Stop and inform user | "MangoBrain is not responding. Proceed without memory context? (yes/no)" |
+| ANALYZE (analyzer remember) | Analyzer reports failure | Main informs user, asks whether to continue with code-only analysis |
+| VERIFY (verifier remember) | Verifier reports failure | Main informs user, continues verification (memory is secondary here) |
+| CLOSE (mem-manager) | Stop and inform user | "Memory sync failed. Run /memorize later to sync manually." |
+
+**Rationale**: Working without memory context means missing gotchas, patterns, and
+past decisions. The user should make an informed choice, not discover later that
+memory was silently skipped.
+
+---
+
+## Decision Trees — Quick Reference
+
+### How many analyzers?
+
+```
+FE + BE?
+  YES → 2 parallel (1 FE, 1 BE)
+  NO  → 50+ files, 3+ domains?
+          YES → 2-3 parallel
+          NO  → 1 analyzer
+```
+
+### How many executors?
+
+```
+Estimated work?
+  < 40k tokens  → 1 executor
+  40-80k tokens → 1-2 executors
+  > 80k tokens  → 2-3 executors
+
+Tasks dependent?
+  YES → keep in SAME executor (retains context)
+  NO  → can split to parallel executors
+
+Touch same files?
+  YES → MUST be same executor or sequential
+  NO  → can be parallel
+```
+
+### Auto-retry or escalate?
+
+```
+confidence_in_fix?
+  high   → AUTO RETRY (1x max)
+  medium → RETRY 1x, then ESCALATE
+  low    → ESCALATE immediately
+
+Already retried twice?
+  YES → ESCALATE regardless
 ```
 
 ---
@@ -697,12 +443,12 @@ Memory is valuable but NOT blocking
 ```markdown
 ## Task Execution Summary
 
-**Task**: [task title]
+**Task**: [title]
 **Source**: [text input | task file: {filename}]
 
 ### What Was Done
-- File 1: [changes made]
-- File 2: [changes made]
+- File 1: [changes]
+- File 2: [changes]
 
 ### Verification Results
 - Build: [PASS/FAIL]
@@ -716,12 +462,13 @@ Memory is valuable but NOT blocking
 - WIP registered: [yes/no]
 
 ### Notes
-[Any important observations, known issues, or recommendations]
+[Important observations, known issues, recommendations]
 ```
 
-### Incomplete Task Summary
+### Incomplete Task
 
-Same template but with **Status: Partially completed**, a **What Remains** section, a **Why Incomplete** section, and **WIP memory registered: yes**.
+Same template but with: **Status: Partially completed**, **What Remains** section,
+**Why Incomplete** section, **WIP memory registered: yes**.
 
 ---
 
@@ -731,217 +478,15 @@ Same template but with **Status: Partially completed**, a **What Remains** secti
 |---------|--------|
 | `ok` / `proceed` / `go` | Approve and continue |
 | `stop` / `halt` | Interrupt, register WIP in MangoBrain, report status |
-| `skip analyze` | Skip ANALYZE phase (use with caution) |
+| `skip analyze` | Skip ANALYZE (use with caution) |
 | `modify plan` | Allow plan modification |
 | `retry` | Retry last failed step |
 
 ### User Interrupts (`stop`)
 
-When user says stop/halt mid-task:
-
-1. **Do NOT abandon work** — complete current agent if possible
-2. **Spawn mem-manager** with WIP context:
-   - What was completed
-   - What remains
-   - Current state of files
-3. **Report status** to user with next-step instructions
-
----
-
-## Decision Tree Quick Reference
-
-### How many analyzers?
-
-```
-Is it FE + BE?
-  YES -> 2 analyzers (1 FE, 1 BE) in parallel
-  NO  -> Is it 50+ files across 3+ domains?
-           YES -> 2-3 analyzers in parallel
-           NO  -> 1 analyzer
-```
-
-### How many executors?
-
-```
-Total estimated work?
-  < 40k tokens -> 1 executor
-  40-80k tokens -> 1-2 executors
-  > 80k tokens  -> 2-3 executors
-
-Are tasks dependent?
-  YES -> executors in SEQUENCE
-  NO  -> executors in PARALLEL
-
-Do tasks touch same files?
-  YES -> MUST be sequential (same executor or sequential executors)
-  NO  -> can be parallel
-```
-
-### Auto-retry or escalate?
-
-```
-Verification failed.
-confidence_in_fix?
-  high   -> AUTO RETRY (1x max)
-  medium -> RETRY 1x, then ESCALATE
-  low    -> ESCALATE immediately
-
-Already retried twice?
-  YES -> ESCALATE regardless of confidence
-```
-
-### Memory retrieval strategy?
-
-```
-Phase: ANALYZE start
-  -> Main: 1x deep + 2-4x quick (multi-query strategy)
-  -> Pass results to analyzer(s)
-
-Phase: ANALYZE (agent)
-  -> analyzer: quick lookups for specific areas during exploration
-
-Phase: VERIFY
-  -> verifier: quick lookups for known issues with modified files
-
-Phase: CLOSE
-  -> mem-manager: quick lookups to check for duplicates before memorizing
-```
-
----
-
-## Full Example: Text Input Task
-
-```
-User: /task Fix price display showing cents instead of dollars in order sidebar
-
-PHASE 1: INTAKE
-  Task is clear. No ambiguity. Proceed.
-
-PHASE 2: ANALYZE
-  Main:
-    remember("order sidebar price display cents dollars bug", mode="deep", project="{PROJECT}")
-    remember("formatPrice formatMoneyValue cents conversion", mode="quick", project="{PROJECT}")
-    remember("OrderSidebar PaymentStep price calculation", mode="quick", project="{PROJECT}")
-
-    Memory returns:
-    - "Price double-division bug: formatMoneyValue divides by 100, but some callers
-       already pass dollars. Check if caller passes cents or dollars."
-    - "OrderSidebar.tsx uses formatPrice from lib/format.ts"
-
-  Spawn analyzer:
-    model: "sonnet"
-    tools: [Read, Grep, Glob, mcp__mango-brain__remember]
-    Context: Pass memory findings + task description
-    Task: Find where price is displayed in OrderSidebar, trace data flow
-
-  Analyzer returns:
-    - OrderSidebar.tsx:42 calls formatPrice(order.price)
-    - order.price comes from API as cents (integer)
-    - formatPrice divides by 100 (correct)
-    - BUT OrderSidebar also calls formatMoneyValue which ALSO divides by 100
-    - Double division: price / 100 / 100 = wrong display
-
-PHASE 3: PLAN
-  PLAN for: Fix price double-division in OrderSidebar
-
-  Memory insights applied:
-  - Known pattern: double-division bug (memory confirms this is recurring)
-
-  Atomic Tasks:
-  1. Fix OrderSidebar.tsx: Use formatPrice OR formatMoneyValue, not both
-
-  Agent Distribution:
-  - 1 executor: Task 1 (~5k tokens)
-
-  Estimated total: 1 agent
-
-  "I'll fix the double-division in OrderSidebar.tsx. Proceed? (ok/modify/stop)"
-
-  User: ok
-
-PHASE 4: EXECUTE
-  Spawn executor:
-    model: "sonnet"
-    tools: [Read, Edit, Write, Bash]
-    Context: analyzer findings + memory warning about double-division
-    Task: Fix OrderSidebar.tsx line 42
-
-  Executor: Success. Removed redundant formatMoneyValue call.
-
-PHASE 5: VERIFY
-  Spawn verifier:
-    model: "sonnet"
-    tools: [Bash, Read, mcp__mango-brain__remember]
-    Task: Build + test + check price displays correctly
-
-  Verifier:
-    remember("build test order price", mode="quick", project="{PROJECT}")
-    Build: PASS
-    Tests: 24 passed / 0 failed
-    Overall: PASS
-
-PHASE 6: CLOSE
-  Spawn mem-manager:
-    model: "sonnet"
-    tools: [Read, mcp__mango-brain__memorize, mcp__mango-brain__sync_codebase,
-            mcp__mango-brain__update_memory, mcp__mango-brain__remember]
-    Task: Memorize fix, sync changed file
-
-  mem-manager:
-    - memorize(): "OrderSidebar double-division fix: order.price from API is
-      in cents. Use formatPrice() which divides by 100 once. Do NOT chain
-      formatMoneyValue() after formatPrice() — causes double division (price/10000)."
-    - sync_codebase(["src/components/OrderSidebar.tsx"], project="{PROJECT}")
-    - No WIP (task complete)
-
-SUMMARY:
-  Task: Fix price double-division in OrderSidebar
-  Files modified: OrderSidebar.tsx
-  Verification: PASS (build OK, 24 tests passed)
-  Memory: 1 memory created, 1 file synced
-```
-
----
-
-## Full Example: Task File Input (Key Differences Only)
-
-```
-User: /task .claude/tasks/2026-03-14-1430-add-google-oauth.md
-
-INTAKE: Read file, extract goal/approach/requirements/constraints/hints.
-        Freshness check: OK. No questions to user.
-
-ANALYZE: Same as text input — remember() multi-query + spawn analyzer.
-         task.md hints guide exploration but analyzer verifies fresh codebase.
-
-PLAN: Auto-approve (from /discuss). No user confirmation.
-      "Plan approved (from /discuss session). Proceeding with execution..."
-
-EXECUTE/VERIFY/CLOSE: Identical to text input workflow.
-```
-
----
-
-## MangoBrain Failure Resilience
-
-MangoBrain tools may occasionally fail (server down, DB locked, timeout). The task workflow MUST NOT block on memory failures.
-
-### Graceful Degradation
-
-| Phase | If MangoBrain fails | Fallback |
-|-------|-------------------|----------|
-| ANALYZE (Main remember) | Log warning, proceed without memory context | Analyzers rely on code exploration only |
-| ANALYZE (analyzer remember) | Analyzer continues without memory lookups | Code-only analysis |
-| VERIFY (verifier remember) | Verifier continues without memory lookups | Standard verification |
-| CLOSE (mem-manager) | Log warning, report to user | "Memory update skipped. Consider running /memorize later." |
-
-### Warning Format
-
-```
-[MangoBrain] Warning: {tool_name} failed ({error_type}).
-Continuing without memory {retrieval|storage}.
-{Suggestion for user if CLOSE phase fails}
-```
+1. Complete current agent if possible
+2. Spawn mem-manager with WIP context (what's done, what remains, file state)
+3. Report status with next-step instructions
 
 ---
 
@@ -949,7 +494,7 @@ Continuing without memory {retrieval|storage}.
 
 | Before... | Must be true |
 |-----------|-------------|
-| ANALYZE | Input parsed. remember() multi-query done. Analyzer count decided. Memory context formatted. |
+| ANALYZE | Input parsed. `remember()` multi-query done. Analyzer count decided. Memory context formatted. |
 | PLAN | Analyzer outputs synthesized. Memory insights cross-referenced. Confirm strategy set (ask vs auto). |
 | EXECUTE | Plan approved. Executor prompts assembled with context + memory constraints. NO memory tools for executor. |
 | VERIFY | All executors done. Files list compiled. Build commands from CLAUDE.md ready. Verifier has remember access. |

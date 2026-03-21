@@ -41,7 +41,7 @@ Review the current conversation and produce a structured summary:
 
 ### Step 2 — Read the mem-manager agent prompt
 
-Read the mem-manager agent prompt from the MangoBrain package (installed via `mango-brain install`).
+Read the mem-manager agent prompt from the MangoBrain package (installed via `mangobrain install`).
 
 This contains the full mem-manager workflow instructions.
 

@@ -41,7 +41,7 @@ INSTALL (preparazione)
 INIT (estrazione memorie) — OGNI STEP = SESSIONE SEPARATA
   3. [ ] Doc Base — Rules & documentation extraction
   4. [ ] Code Base — Parallel codebase scan (subagents)
-  5. [ ] Event Base — Import from PROJECT_MEMORY.jsonl (optional)
+  5. [ ] Event Base — Import from event/history documents (optional)
   6. [ ] Chat Base — Extract from chat JSONL sessions (multiple runs)
   7. [ ] Elaborate Base — First elaboration pass(es)
 
@@ -74,7 +74,7 @@ Based on which step is next, follow the appropriate logic:
 These steps have a `prompt_file` field in the setup_status response. The prompt file contains detailed instructions for that phase.
 
 1. Mark step as in_progress: `setup_status(project, action="update", phase="{phase}", step="{step}", status="in_progress")`
-2. Read the prompt file using the Read tool (path is relative to the mango-brain package directory)
+2. Read the prompt file using the Read tool (path is relative to the mangobrain package directory)
 3. Follow the instructions in the prompt file exactly
 4. When done, mark as completed: `setup_status(project, action="update", phase="{phase}", step="{step}", status="completed", result="{JSON with metrics}")`
 

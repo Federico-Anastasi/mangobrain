@@ -1,10 +1,9 @@
 {
   "mcpServers": {
-    "mango-brain": {
-      "command": "C:/Users/Mango/Desktop/Dev_FA/mangodev/mango-brain/venv/Scripts/python.exe",
+    "mangobrain": {
+      "command": "C:/Users/Mango/Desktop/Dev_FA/mangodev/mangobrain/venv/Scripts/python.exe",
       "args": ["-m", "server"],
       "env": {
-        "MANGOBRAIN_DB": "C:/Users/Mango/.mangobrain/mangobrain.db",
         "PYTHONIOENCODING": "utf-8"
       }
     }
