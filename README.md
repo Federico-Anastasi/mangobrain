@@ -5,7 +5,10 @@
   <img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" />
 </p>
 
-<h1 align="center">🧠 MangoBrain</h1>
+<p align="center">
+  <img src="assets/logo.svg" alt="MangoBrain logo" width="80" />
+</p>
+<h1 align="center">MangoBrain</h1>
 
 <p align="center">
   <strong>A development system for Claude Code where every session learns from the last</strong>
