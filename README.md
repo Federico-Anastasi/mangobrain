@@ -15,6 +15,7 @@
 
 <p align="center">
   <a href="https://pypi.org/project/mangobrain/"><img src="https://img.shields.io/pypi/v/mangobrain?style=flat-square&color=7c3aed&label=PyPI" /></a>
+  <img src="https://img.shields.io/badge/v3.2.1-7c3aed?style=flat-square" />
   <img src="https://img.shields.io/badge/python-3.11+-blue?style=flat-square&logo=python&logoColor=white" />
   <img src="https://img.shields.io/badge/MCP-compatible-8A2BE2?style=flat-square" />
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" />
@@ -49,33 +50,18 @@ After 500+ memories across two real projects, session 50 is genuinely better tha
 
 ## How it works
 
-```mermaid
-flowchart LR
-    DISCUSS["/discuss\nPlan with memory"] -->|task.md| TASK["/task"]
+<p align="center">
+  <img src="assets/workflow.svg" alt="MangoBrain Workflow" width="800" />
+</p>
 
-    subgraph agents ["4 specialized agents"]
-        direction TB
-        ANALYZER["Analyzer\nExplores code + recalls memory"]
-        EXECUTOR["Executor\nWrites code — no memory, 100% focused"]
-        VERIFIER["Verifier\nQA + checks known issues"]
-        MEMMGR["Mem-manager\nCaptures knowledge at close"]
-    end
-
-    TASK --> agents
-    MEMMGR -->|saves| MEMORY[("Memory")]
-    MEMORY -.->|"recalls"| ANALYZER
-    MEMORY -.->|"recalls"| VERIFIER
-    MEMORY -->|"next session"| DISCUSS
-```
-
-**The closed loop:** work produces knowledge, knowledge improves work.
-
-| Phase | What happens |
-|-------|-------------|
-| `/discuss` | You describe what to build. Claude recalls past decisions, known bugs, patterns. Analyzers explore the codebase *and* memory. Output: `task.md`. |
-| `/task` | 4 agents execute with strict roles. The **analyzer** checks memory for gotchas. The **executor** writes code (no memory access — 100% focused). The **verifier** recalls known issues before shipping. |
-| `close` | The **mem-manager** runs automatically. Captures decisions, bugs found, patterns learned. Zero effort. |
-| `next session` | Memory surfaces relevant knowledge. The loop repeats — each cycle smarter than the last. |
+| | What happens | Codebase | Memory |
+|---|---|---|---|
+| **`/discuss`** | You explain the task. Claude explores code, recalls past decisions, brainstorms with full context. Output: `task.md`. | reads | reads |
+| **Analyzer** | Deep analysis of the areas involved. Surfaces gotchas from memory before any code is written. | reads | reads |
+| **Executor** | Writes code — 100% focused on implementation. No memory access by design. | writes | — |
+| **Verifier** | Runs tests, checks quality, recalls known issues from memory before shipping. | reads | reads |
+| **Mem-manager** | Captures decisions, bugs found, patterns learned. Zero effort from you. | — | **writes** |
+| **Next session** | `/discuss` starts with everything the last cycle learned. The loop repeats — each cycle smarter. | | reads |
 
 ---
 
