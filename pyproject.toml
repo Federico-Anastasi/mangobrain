@@ -3,8 +3,8 @@ requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "mangobrain"
-version = "3.1.2"
+name = "mango-brain"
+version = "3.2.0"
 description = "Persistent associative memory system for Claude Code — complete development workflow"
 readme = "README.md"
 license = {text = "MIT"}
