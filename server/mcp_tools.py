@@ -1312,8 +1312,12 @@ def register_tools(
             phase: Phase name (required for action="update").
             step: Step name (required for action="update").
             status: New status: pending, in_progress, completed, skipped, failed.
-            result: JSON string with step results/metrics.
+            result: JSON string with step results/metrics. If a dict is passed, it will be auto-serialized.
         """
+        # Auto-serialize dict result to JSON string
+        if result is not None and not isinstance(result, str):
+            result = json.dumps(result)
+
         if action == "init":
             count = await db.init_setup_progress(project)
             summary = await db.get_setup_summary(project)

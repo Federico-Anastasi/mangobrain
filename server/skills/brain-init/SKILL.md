@@ -74,7 +74,7 @@ Based on which step is next, follow the appropriate logic:
 These steps have a `prompt_file` field in the setup_status response. The prompt file contains detailed instructions for that phase.
 
 1. Mark step as in_progress: `setup_status(project, action="update", phase="{phase}", step="{step}", status="in_progress")`
-2. Read the prompt file using the Read tool (path is relative to the mangobrain package directory)
+2. Read the prompt file using the Read tool (path is relative to the project root, e.g. `.claude/prompts/mangobrain/init/01-doc-base.md`)
 3. Follow the instructions in the prompt file exactly
 4. When done, mark as completed: `setup_status(project, action="update", phase="{phase}", step="{step}", status="completed", result="{JSON with metrics}")`
 
