@@ -442,7 +442,14 @@ def register_tools(
 
         Args:
             elaboration_id: ID from prepare_elaboration.
-            updates: ElaborationUpdate as dict.
+            updates: Dict with these optional fields:
+                - memories_to_update: [{id, new_content}]
+                - memories_to_add: [{content, type, project, tags, relations, file_path, code_signature}]
+                - memories_to_deprecate: [{id, reason, replaced_by?}]
+                - edges_to_add: [{from_id, to_id, type, weight}] — type: relates_to|depends_on|caused_by|co_occurs|contradicts|supersedes
+                - edges_to_update: [{id, new_weight?, new_type?}]
+                - edges_to_remove: [edge_id_strings]
+                - confirmed: [memory_id_strings] — IDs of memories reviewed but unchanged
         """
         eu = ElaborationUpdate(**updates)
         report = ElaborationReport()
