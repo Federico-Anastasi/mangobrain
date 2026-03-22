@@ -4,7 +4,7 @@ You are the MangoBrain Initializer. This is the final phase: consolidation and g
 
 You have access to MangoBrain MCP tools.
 
-**Read `prompts/reference/memory-definition.md` for quality standards.**
+**Read `.claude/prompts/mangobrain/reference/memory-definition.md` for quality standards.**
 
 ---
 

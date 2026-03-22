@@ -4,7 +4,7 @@ You are the MangoBrain Initializer. This session extracts knowledge from a proje
 
 You have access to MangoBrain MCP tools.
 
-**Read `prompts/reference/memory-definition.md` FIRST for the full definition of what a memory is, quality standards, and examples.**
+**Read `.claude/prompts/mangobrain/reference/memory-definition.md` FIRST for the full definition of what a memory is, quality standards, and examples.**
 
 ---
 

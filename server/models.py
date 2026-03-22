@@ -224,7 +224,7 @@ SETUP_STEPS_TEMPLATE: list[tuple[str, str, int, str, str, str | None]] = [
      ".claude/prompts/mangobrain/init/02-code-base.md"),
     ("init", "event_base", 5,
      "Event Base — Existing Memory Import",
-     "Import from PROJECT_MEMORY.jsonl, documents, task lists, or other knowledge archives (optional)",
+     "Import existing project knowledge — decision logs, bug reports, architecture docs, task lists, or any append-only event log (optional)",
      ".claude/prompts/mangobrain/init/03-event-base.md"),
     ("init", "chat_base", 6,
      "Chat Base — Chat History Extraction",

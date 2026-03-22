@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mango-brain"
-version = "3.2.6"
+version = "3.2.7"
 description = "The learning layer for Claude Code — persistent associative memory + development workflow. Claude Code gets smarter the longer you use it."
 readme = "README.md"
 license = {text = "MIT"}

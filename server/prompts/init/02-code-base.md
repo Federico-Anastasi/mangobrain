@@ -6,7 +6,7 @@ Phase 1 (Doc Base) gave you the project's conventions, identity, and architectur
 
 You have access to MangoBrain MCP tools + file system tools (Glob, Read) + **the Agent tool** for parallel exploration.
 
-**Read `prompts/reference/memory-definition.md` FIRST for quality standards.**
+**Read `.claude/prompts/mangobrain/reference/memory-definition.md` FIRST for quality standards.**
 
 ---
 

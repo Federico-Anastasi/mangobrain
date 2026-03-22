@@ -6,7 +6,7 @@ Phase 1 captured documentation, Phase 2 mapped the codebase, Phase 3 imported ex
 
 You have access to MangoBrain MCP tools.
 
-**Read `prompts/reference/memory-definition.md` FIRST for quality standards.**
+**Read `.claude/prompts/mangobrain/reference/memory-definition.md` FIRST for quality standards.**
 
 ---
 
