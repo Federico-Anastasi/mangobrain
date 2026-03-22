@@ -1302,7 +1302,7 @@ def register_tools(
         phase: str | None = None,
         step: str | None = None,
         status: str | None = None,
-        result: str | None = None,
+        result: str | dict | None = None,
     ) -> str:
         """Get or update setup progress for a project.
 
