@@ -117,7 +117,7 @@ function StepCard({
 
   const copyPrompt = () => {
     const promptText = step.prompt_file
-      ? `Read the file mangobrain/${step.prompt_file} and follow the instructions for project setup.`
+      ? `Read the file ${step.prompt_file} and follow the instructions for project setup.`
       : `Complete the "${step.title}" step for memory setup.`;
     navigator.clipboard.writeText(promptText);
     setCopied(true);
