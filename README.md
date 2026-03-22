@@ -70,7 +70,7 @@ After 500+ memories across two real projects, session 50 is genuinely better tha
 ### 1. Install
 
 ```bash
-pip install mangobrain
+pip install mango-brain
 ```
 
 Lightweight install (~50MB). PyTorch and the embedding engine are installed in the next step, optimized for your hardware.
@@ -101,7 +101,7 @@ Open Claude Code in your project and paste:
 Install MangoBrain for this project.
 IMPORTANT: Use Python 3.11 or higher. Check available versions first (python --version,
 py -3.12 --version, python3.12 --version, etc.) and use the correct one for pip install.
-Run: pip install mangobrain  (using Python >= 3.11's pip)
+Run: pip install mango-brain  (using Python >= 3.11's pip)
 Then run: mangobrain install
 Then run: mangobrain serve --api (in background)
 Then tell me to open http://localhost:3101 and to restart Claude Code.

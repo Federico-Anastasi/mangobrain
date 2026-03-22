@@ -445,9 +445,22 @@ def _setup_mcp_json(project_path: Path) -> None:
 
 
 def _patch_claude_md(project_path: Path, project_name: str) -> None:
-    """Add MangoBrain section to project's CLAUDE.md if not already present."""
-    claude_md = project_path / "CLAUDE.md"
+    """Add MangoBrain section to project's CLAUDE.md if not already present.
+
+    Searches for CLAUDE.md in order: .claude/CLAUDE.md, then root CLAUDE.md.
+    Patches whichever is found first. Creates root CLAUDE.md only if neither exists.
+    """
+    claude_md_inner = project_path / ".claude" / "CLAUDE.md"
+    claude_md_root = project_path / "CLAUDE.md"
     marker = "## MangoBrain"
+
+    # Find existing CLAUDE.md — prefer .claude/ over root
+    if claude_md_inner.exists():
+        claude_md = claude_md_inner
+    elif claude_md_root.exists():
+        claude_md = claude_md_root
+    else:
+        claude_md = claude_md_root  # Create at root if neither exists
 
     if claude_md.exists():
         content = claude_md.read_text(encoding="utf-8")
