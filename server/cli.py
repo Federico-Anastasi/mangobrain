@@ -23,6 +23,14 @@ AGENTS_SRC = PACKAGE_DIR / "agents"
 RULES_SRC = PACKAGE_DIR / "rules"
 PROMPTS_SRC = PACKAGE_DIR / "prompts"
 
+# Work paths
+WORK_DIR = PACKAGE_DIR / "work"
+WORK_SKILLS_SRC = WORK_DIR / "skills"
+WORK_AGENTS_SRC = WORK_DIR / "agents"
+WORK_RULES_SRC = WORK_DIR / "rules"
+WORK_PROMPTS_SRC = WORK_DIR / "prompts"
+WORK_TEMPLATES_SRC = WORK_DIR / "templates"
+
 
 # ── Commands ──────────────────────────────────────────────────────────────────
 
@@ -259,6 +267,62 @@ def cmd_install(args: argparse.Namespace) -> None:
     print()
 
 
+def cmd_install_work(args: argparse.Namespace) -> None:
+    """Install MangoBrain Work into a project — marketing, content, strategy workflow."""
+    project_path = Path(args.path).resolve() if args.path else Path.cwd()
+    project_name = args.project or project_path.name
+
+    if not project_path.exists():
+        print(f"Error: path does not exist: {project_path}")
+        sys.exit(1)
+
+    print("=" * 60)
+    print("  MangoBrain Work — Installation")
+    print("=" * 60)
+
+    # ── Step 1: Install Work files ──
+    print("\n[1/4] Installing Work skills, agents, rules, and prompts...")
+    installed = _install_work_files(project_path)
+    print(f"  {len(installed)} files installed into {project_path / '.claude'}")
+
+    # ── Step 2: Install templates ──
+    print("\n[2/4] Installing templates...")
+    templates_installed = _install_work_templates(project_path)
+    print(f"  {len(templates_installed)} template files installed")
+
+    # ── Step 3: Configure MCP ──
+    print("\n[3/4] Configuring MCP server...")
+    _setup_mcp_json(project_path)
+
+    # ── Step 4: Create project structure ──
+    print("\n[4/4] Setting up project structure...")
+    briefs_dir = project_path / "briefs"
+    briefs_dir.mkdir(exist_ok=True)
+    print(f"  Created briefs/")
+
+    # Patch CLAUDE.md with Work section
+    _patch_claude_md_work(project_path, project_name)
+
+    # ── Done ──
+    print("\n" + "=" * 60)
+    print("  MangoBrain Work installed!")
+    print("=" * 60)
+    print(f"\n  Installed into: {project_path}")
+    print(f"\n  Document skills (optional, recommended):")
+    print(f"  Install via Claude Code slash commands or copy from:")
+    print(f"  https://github.com/anthropics/claude-code/tree/main/skills")
+    print(f"    - pptx  (presentations)")
+    print(f"    - xlsx  (spreadsheets)")
+    print(f"    - docx  (documents)")
+    print(f"    - pdf   (PDF manipulation)")
+    print(f"    - brand-guidelines")
+    print(f"\n  Next steps:")
+    print(f"  1. Start the server:  mangobrain serve --api")
+    print(f"  2. Restart Claude Code/Desktop")
+    print(f"  3. Run /brain-init-work to initialize brand memory")
+    print()
+
+
 def cmd_doctor(args: argparse.Namespace) -> None:
     """Check MangoBrain health."""
     print("MangoBrain Doctor")
@@ -413,6 +477,120 @@ def _install_files(project_path: Path) -> list[str]:
     return installed
 
 
+def _install_work_files(project_path: Path) -> list[str]:
+    """Copy Work skills/agents/rules/prompts into a project's .claude/ directory."""
+    installed = []
+    claude_dir = project_path / ".claude"
+
+    # Work Skills
+    if WORK_SKILLS_SRC.exists():
+        for skill_dir in WORK_SKILLS_SRC.iterdir():
+            if skill_dir.is_dir() and (skill_dir / "SKILL.md").exists():
+                dest = claude_dir / "skills" / skill_dir.name / "SKILL.md"
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy2(skill_dir / "SKILL.md", dest)
+                installed.append(f"skills/{skill_dir.name}/SKILL.md")
+
+    # Work Agents
+    if WORK_AGENTS_SRC.exists():
+        for agent_file in WORK_AGENTS_SRC.glob("*.md"):
+            dest = claude_dir / "agents" / agent_file.name
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(agent_file, dest)
+            installed.append(f"agents/{agent_file.name}")
+
+    # Work Rules
+    if WORK_RULES_SRC.exists():
+        for rule_file in WORK_RULES_SRC.glob("*.md"):
+            dest = claude_dir / "rules" / rule_file.name
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(rule_file, dest)
+            installed.append(f"rules/{rule_file.name}")
+
+    # Work Prompts
+    if WORK_PROMPTS_SRC.exists():
+        prompts_dest = claude_dir / "prompts" / "mangobrain"
+        for md_file in WORK_PROMPTS_SRC.rglob("*.md"):
+            rel = md_file.relative_to(WORK_PROMPTS_SRC)
+            dest = prompts_dest / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(md_file, dest)
+            installed.append(f"prompts/mangobrain/{rel}")
+
+    return installed
+
+
+def _install_work_templates(project_path: Path) -> list[str]:
+    """Copy Work templates (CLAUDE.md template + rule templates) into the project."""
+    installed = []
+    templates_dest = project_path / ".claude" / "templates"
+
+    if WORK_TEMPLATES_SRC.exists():
+        for md_file in WORK_TEMPLATES_SRC.rglob("*.md"):
+            rel = md_file.relative_to(WORK_TEMPLATES_SRC)
+            dest = templates_dest / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(md_file, dest)
+            installed.append(f"templates/{rel}")
+
+    return installed
+
+
+def _patch_claude_md_work(project_path: Path, project_name: str) -> None:
+    """Add MangoBrain Work section to project's CLAUDE.md."""
+    claude_md_inner = project_path / ".claude" / "CLAUDE.md"
+    claude_md_root = project_path / "CLAUDE.md"
+    marker = "## MangoBrain"
+
+    if claude_md_inner.exists():
+        claude_md = claude_md_inner
+    elif claude_md_root.exists():
+        claude_md = claude_md_root
+    else:
+        claude_md = claude_md_root
+
+    if claude_md.exists():
+        content = claude_md.read_text(encoding="utf-8")
+        if marker in content:
+            return
+    else:
+        content = f"# {project_name}\n\n"
+
+    section = f"""
+{marker} Work — Memory-Powered Workflow
+
+MangoBrain provides persistent memory and a complete workflow for marketing, content, and strategy work.
+
+### Workflow Skills
+- `/brief` — Intake with memory context, produces structured brief in briefs/
+- `/create` — Full pipeline: Researcher -> Creator -> Reviewer -> Mem-manager
+- `/brain-init-work` — Initialize brand memory (guided setup)
+- `/memorize-work` — End-of-session memory sync
+- `/elaborate-work` — Periodic memory consolidation
+- `/health-check-work` — Memory health diagnosis
+- `/smoke-test-work` — Query verification
+
+### Agents (spawned by /create, not invoked directly)
+- **researcher** — Gathers context from memory, docs, web
+- **creator** — Produces deliverables (copy, presentations, documents)
+- **reviewer** — QA against brief and brand guidelines
+- **mem-manager** — Persists session knowledge
+
+### Output Structure
+- `briefs/` — Brief files ({{date}}-{{HHmm}}-{{slug}}.md)
+- `docs/` — Strategy, research, brand documents
+- `content/` — Social, copy, editorial
+- `media/` — Graphics, video
+- `deliverables/` — Presentations, reports, exports
+
+### Rules (auto-loaded)
+- `mangobrain-remember-work.md` — Query strategy for Work projects
+- `mangobrain-workflow-work.md` — Brief -> Create workflow integration
+"""
+
+    claude_md.write_text(content + section, encoding="utf-8")
+
+
 def _setup_mcp_json(project_path: Path) -> None:
     """Create or update .mcp.json with MangoBrain server entry."""
     mcp_json = project_path / ".mcp.json"
@@ -528,6 +706,12 @@ def main() -> None:
     p_install.add_argument("--path", help="Path to the project directory (default: current dir)")
     p_install.add_argument("--project", "-p", help="Project name (default: folder name)")
     p_install.set_defaults(func=cmd_install)
+
+    # install-work
+    p_install_work = sub.add_parser("install-work", help="Install MangoBrain Work (marketing/content/strategy)")
+    p_install_work.add_argument("--path", help="Path to the project directory (default: current dir)")
+    p_install_work.add_argument("--project", "-p", help="Project name (default: folder name)")
+    p_install_work.set_defaults(func=cmd_install_work)
 
     # doctor
     p_doctor = sub.add_parser("doctor", help="Check MangoBrain system health")
