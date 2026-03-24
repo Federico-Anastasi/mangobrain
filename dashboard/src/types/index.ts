@@ -69,6 +69,18 @@ export interface ElaborationLog {
   status: string;
 }
 
+export interface OperationLog {
+  id: string;
+  tool: string;
+  project: string | null;
+  params: string | null;
+  result: string | null;
+  status: string;
+  duration_ms: number | null;
+  started_at: string;
+  completed_at: string | null;
+}
+
 export interface Stats {
   total_memories: number;
   total_deprecated: number;

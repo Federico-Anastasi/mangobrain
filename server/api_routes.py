@@ -715,6 +715,17 @@ def create_api_router(db: Database, retrieval=None) -> APIRouter:
             return JSONResponse(status_code=404, content={"error": "Elaboration not found"})
         return log
 
+    # ── Operations ─────────────────────────────────────────────────────────
+
+    @router.get("/operations")
+    async def list_operations(
+        tool: Optional[str] = Query(None),
+        project: Optional[str] = Query(None),
+        limit: int = Query(100, ge=1, le=500),
+    ):
+        ops = await db.get_operations(tool=tool, project=project, limit=limit)
+        return {"items": ops}
+
     # ── Projects ──────────────────────────────────────────────────────────
 
     @router.get("/projects")

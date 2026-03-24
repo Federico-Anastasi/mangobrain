@@ -66,10 +66,17 @@ CREATE INDEX IF NOT EXISTS idx_edges_from ON edges(from_id);
 CREATE INDEX IF NOT EXISTS idx_edges_to ON edges(to_id);
 CREATE INDEX IF NOT EXISTS idx_edges_weight ON edges(weight);
 
-CREATE TABLE IF NOT EXISTS elaboration_log (
+CREATE TABLE IF NOT EXISTS operation_log (
     id              TEXT PRIMARY KEY,
-    started_at      DATETIME NOT NULL,
+    tool            TEXT,
+    project         TEXT,
+    params          TEXT,
+    result          TEXT,
+    status          TEXT DEFAULT 'ok',
+    duration_ms     INTEGER,
+    started_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     completed_at    DATETIME,
+    -- Legacy elaboration columns (NULL for non-elaborate operations)
     seed_count      INTEGER,
     working_set     INTEGER,
     seed_ids        TEXT,
@@ -78,9 +85,12 @@ CREATE TABLE IF NOT EXISTS elaboration_log (
     deprecated_memories INTEGER DEFAULT 0,
     new_edges       INTEGER DEFAULT 0,
     updated_edges   INTEGER DEFAULT 0,
-    summary         TEXT,
-    status          TEXT DEFAULT 'running'
+    summary         TEXT
 );
+
+CREATE INDEX IF NOT EXISTS idx_operation_log_tool ON operation_log(tool);
+CREATE INDEX IF NOT EXISTS idx_operation_log_project ON operation_log(project);
+CREATE INDEX IF NOT EXISTS idx_operation_log_started ON operation_log(started_at);
 
 CREATE TABLE IF NOT EXISTS sessions (
     id              TEXT PRIMARY KEY,
@@ -166,6 +176,9 @@ class Database:
             "CREATE INDEX IF NOT EXISTS idx_memories_file_path ON memories(file_path)"
         )
         await self._conn.commit()
+
+        # Migration: elaboration_log → operation_log
+        await self._migrate_elaboration_log()
 
     @property
     def conn(self) -> aiosqlite.Connection:
@@ -364,43 +377,98 @@ class Database:
             cur = await self.conn.execute("SELECT * FROM sessions ORDER BY started_at DESC")
         return [_row_to_session(r) for r in await cur.fetchall()]
 
-    # ── Elaboration Log ────────────────────────────────────────────────────
+    # ── Operation Log ─────────────────────────────────────────────────────
 
-    async def insert_elaboration_log(self, log: dict[str, Any]) -> str:
-        log_id = log.get("id", str(uuid.uuid4()))
+    async def _migrate_elaboration_log(self) -> None:
+        """Migrate elaboration_log → operation_log for existing DBs."""
+        try:
+            cur = await self.conn.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='elaboration_log'"
+            )
+            if await cur.fetchone():
+                # Old table exists — migrate data into operation_log
+                await self.conn.execute(
+                    """INSERT OR IGNORE INTO operation_log
+                       (id, tool, started_at, completed_at, seed_count, working_set,
+                        seed_ids, new_memories, updated_memories, deprecated_memories,
+                        new_edges, updated_edges, summary, status)
+                       SELECT id, 'elaborate', started_at, completed_at, seed_count,
+                              working_set, seed_ids, new_memories, updated_memories,
+                              deprecated_memories, new_edges, updated_edges, summary, status
+                       FROM elaboration_log"""
+                )
+                await self.conn.execute("DROP TABLE elaboration_log")
+                await self.conn.commit()
+        except Exception:
+            pass  # Already migrated or no old table
+
+    async def insert_operation(self, op: dict[str, Any]) -> str:
+        """Insert a generic operation log entry."""
+        op_id = op.get("id", str(uuid.uuid4()))
         await self.conn.execute(
-            """INSERT INTO elaboration_log
-               (id, started_at, completed_at, seed_count, working_set, seed_ids,
-                new_memories, updated_memories, deprecated_memories,
-                new_edges, updated_edges, summary, status)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            """INSERT INTO operation_log
+               (id, tool, project, params, result, status, duration_ms,
+                started_at, completed_at,
+                seed_count, working_set, seed_ids, new_memories,
+                updated_memories, deprecated_memories, new_edges,
+                updated_edges, summary)
+               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
             (
-                log_id, log.get("started_at"), log.get("completed_at"),
-                log.get("seed_count"), log.get("working_set"),
-                log.get("seed_ids"),
-                log.get("new_memories", 0), log.get("updated_memories", 0),
-                log.get("deprecated_memories", 0), log.get("new_edges", 0),
-                log.get("updated_edges", 0), log.get("summary"),
-                log.get("status", "running"),
+                op_id, op.get("tool"), op.get("project"),
+                op.get("params"), op.get("result"),
+                op.get("status", "ok"), op.get("duration_ms"),
+                op.get("started_at", datetime.utcnow().isoformat()),
+                op.get("completed_at"),
+                op.get("seed_count"), op.get("working_set"),
+                op.get("seed_ids"),
+                op.get("new_memories", 0), op.get("updated_memories", 0),
+                op.get("deprecated_memories", 0), op.get("new_edges", 0),
+                op.get("updated_edges", 0), op.get("summary"),
             ),
         )
         await self.conn.commit()
-        return log_id
+        return op_id
 
-    async def update_elaboration_log(self, log_id: str, fields: dict[str, Any]) -> bool:
+    async def update_operation(self, op_id: str, fields: dict[str, Any]) -> bool:
         if not fields:
             return False
         sets = ", ".join(f"{k}=?" for k in fields)
-        vals = list(fields.values()) + [log_id]
-        await self.conn.execute(f"UPDATE elaboration_log SET {sets} WHERE id=?", vals)
+        vals = list(fields.values()) + [op_id]
+        await self.conn.execute(f"UPDATE operation_log SET {sets} WHERE id=?", vals)
         await self.conn.commit()
         return True
 
-    async def get_elaboration_logs(self, limit: int = 20) -> list[dict]:
+    async def get_operations(
+        self,
+        tool: str | None = None,
+        project: str | None = None,
+        limit: int = 50,
+    ) -> list[dict]:
+        clauses: list[str] = []
+        params: list[Any] = []
+        if tool:
+            clauses.append("tool = ?")
+            params.append(tool)
+        if project:
+            clauses.append("project = ?")
+            params.append(project)
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
         cur = await self.conn.execute(
-            "SELECT * FROM elaboration_log ORDER BY started_at DESC LIMIT ?", (limit,)
+            f"SELECT * FROM operation_log {where} ORDER BY started_at DESC LIMIT ?",
+            params + [limit],
         )
         return [dict(r) for r in await cur.fetchall()]
+
+    # Backward-compatible aliases for elaboration
+    async def insert_elaboration_log(self, log: dict[str, Any]) -> str:
+        log["tool"] = "elaborate"
+        return await self.insert_operation(log)
+
+    async def update_elaboration_log(self, log_id: str, fields: dict[str, Any]) -> bool:
+        return await self.update_operation(log_id, fields)
+
+    async def get_elaboration_logs(self, limit: int = 20) -> list[dict]:
+        return await self.get_operations(tool="elaborate", limit=limit)
 
     # ── Search ─────────────────────────────────────────────────────────────
 

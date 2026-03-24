@@ -119,6 +119,8 @@ The criterion: **would you understand it from reading the code alone, without co
 
 **Required fields:**
 
+**Relations: think before skipping.** For every memory, ask: "Is this connected to something already in memory?" Use Phase 1 results to find target IDs, or `target_query` (keyword search string) as fallback. Not every memory needs an edge — but if you create 5+ memories and none have relations, reconsider.
+
 ```python
 memorize(memories=[{
     "content": "...",           # 2-5 lines, English, dense
@@ -128,7 +130,7 @@ memorize(memories=[{
     "file_path": "src/...",     # MANDATORY for code-related memories
     "code_signature": "...",    # Encouraged: "ClassName.method", "useHook", "functionName"
     "relations": [{
-        "target_id": "abc-123",         # PREFERRED if you have the ID
+        "target_id": "abc-123",         # PREFERRED if you have the ID from Phase 1
         "target_query": "fallback text", # FALLBACK: semantic search
         "relation_type": "relates_to",  # relates_to | caused_by | depends_on | co_occurs | contradicts | supersedes
         "weight": 0.7

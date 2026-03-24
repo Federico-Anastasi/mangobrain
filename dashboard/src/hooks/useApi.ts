@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import type { Memory, Edge, Stats, GraphData, Session, ElaborationLog, Project, HealthAlert, AdvancedStats, DiagnoseResponse, SetupSummary, ProjectSetup } from "../types/index.ts";
+import type { Memory, Edge, Stats, GraphData, Session, ElaborationLog, OperationLog, Project, HealthAlert, AdvancedStats, DiagnoseResponse, SetupSummary, ProjectSetup } from "../types/index.ts";
 
 const BASE_URL = "http://localhost:3101";
 
@@ -107,6 +107,14 @@ export function useSessions(project?: string) {
 
 export function useElaborations() {
   return useFetch<{ items: ElaborationLog[] }>("/api/elaborations");
+}
+
+export function useOperations(project?: string, tool?: string) {
+  const params = new URLSearchParams();
+  if (project) params.set("project", project);
+  if (tool) params.set("tool", tool);
+  params.set("limit", "100");
+  return useFetch<{ items: OperationLog[] }>(`/api/operations?${params.toString()}`, [project, tool]);
 }
 
 export function useProjects() {

@@ -33,6 +33,29 @@ from server.retrieval import RetrievalEngine
 logger = logging.getLogger(__name__)
 
 
+async def _log_op(
+    db: Database,
+    tool: str,
+    project: str | None = None,
+    params: dict | None = None,
+    result: dict | None = None,
+    status: str = "ok",
+    duration_ms: int | None = None,
+) -> None:
+    """Log an MCP tool operation to operation_log."""
+    try:
+        await db.insert_operation({
+            "tool": tool,
+            "project": project,
+            "params": json.dumps(params, ensure_ascii=False) if params else None,
+            "result": json.dumps(result, ensure_ascii=False) if result else None,
+            "status": status,
+            "duration_ms": duration_ms,
+        })
+    except Exception as e:
+        logger.warning(f"Failed to log operation {tool}: {e}")
+
+
 def register_tools(
     server: FastMCP,
     db: Database,
@@ -65,6 +88,8 @@ def register_tools(
             limit: Number of recent memories to fetch (mode="recent" only, default 15).
             k_neighbors: Graph hops for neighbor expansion (mode="recent" only, default 2).
         """
+        import time as _time
+        _t0 = _time.monotonic_ns()
         try:
             if mode == "recent":
                 from server.config import DEEP_BUDGET
@@ -122,8 +147,17 @@ def register_tools(
                     "total_tokens": total_tokens,
                     "count": len(memories),
                 }
+            _dur = int((_time.monotonic_ns() - _t0) / 1_000_000)
+            await _log_op(db, "remember", project=project,
+                          params={"query": query, "mode": mode, "limit": limit},
+                          result={"count": result["count"], "total_tokens": result["total_tokens"]},
+                          duration_ms=_dur)
             return json.dumps(result, indent=2)
         except ValueError as e:
+            _dur = int((_time.monotonic_ns() - _t0) / 1_000_000)
+            await _log_op(db, "remember", project=project,
+                          params={"query": query, "mode": mode},
+                          result={"error": str(e)}, status="error", duration_ms=_dur)
             return json.dumps({"error": str(e)})
 
     # ── memorize ───────────────────────────────────────────────────────────
@@ -141,13 +175,18 @@ def register_tools(
             session_id: Session ID if from extraction.
             source: "manual", "extraction", or "elaboration".
         """
+        import time as _time
+        _t0 = _time.monotonic_ns()
         created = 0
         edges_created = 0
         duplicates_skipped = 0
+        _project = None
         src = MemorySource(source)
 
         for mem_dict in memories:
             mi = MemoryInput(**mem_dict)
+            if mi.project:
+                _project = mi.project
 
             # Compute embedding
             emb = embedder.encode(mi.content)
@@ -206,11 +245,12 @@ def register_tools(
                     await db.insert_edge(edge)
                     edges_created += 1
 
-        return json.dumps({
-            "created": created,
-            "edges_created": edges_created,
-            "duplicates_skipped": duplicates_skipped,
-        })
+        _dur = int((_time.monotonic_ns() - _t0) / 1_000_000)
+        _res = {"created": created, "edges_created": edges_created, "duplicates_skipped": duplicates_skipped}
+        await _log_op(db, "memorize", project=_project,
+                      params={"count": len(memories), "source": source},
+                      result=_res, duration_ms=_dur)
+        return json.dumps(_res)
 
     # ── extract_session ────────────────────────────────────────────────────
 
@@ -566,6 +606,8 @@ def register_tools(
         Args:
             memory_ids: List of memory IDs to reinforce.
         """
+        import time as _time
+        _t0 = _time.monotonic_ns()
         now = datetime.utcnow()
         for mid in memory_ids:
             m = await db.get_memory(mid)
@@ -601,6 +643,9 @@ def register_tools(
                     )
                     await db.insert_edge(edge)
 
+        _dur = int((_time.monotonic_ns() - _t0) / 1_000_000)
+        await _log_op(db, "reinforce", params={"count": len(memory_ids)},
+                      result={"reinforced": len(memory_ids)}, duration_ms=_dur)
         return json.dumps({"reinforced": len(memory_ids)})
 
     # ── update_memory ────────────────────────────────────────────────────
@@ -632,6 +677,8 @@ def register_tools(
             is_deprecated: Set True to deprecate, False to un-deprecate.
             deprecated_by: ID of the memory that replaces this one.
         """
+        import time as _time
+        _t0 = _time.monotonic_ns()
         m = await db.get_memory(memory_id)
         if not m:
             return json.dumps({"error": f"Memory {memory_id} not found"})
@@ -667,11 +714,12 @@ def register_tools(
 
         await db.update_memory(memory_id, fields)
 
-        return json.dumps({
-            "updated": memory_id,
-            "fields_changed": list(fields.keys()),
-            "project": m.project,
-        })
+        _dur = int((_time.monotonic_ns() - _t0) / 1_000_000)
+        _res = {"updated": memory_id, "fields_changed": list(fields.keys()), "project": m.project}
+        await _log_op(db, "update_memory", project=m.project,
+                      params={"memory_id": memory_id, "fields": list(fields.keys())},
+                      result=_res, duration_ms=_dur)
+        return json.dumps(_res)
 
     # ── decay ──────────────────────────────────────────────────────────────
 
@@ -682,7 +730,12 @@ def register_tools(
         Args:
             dry_run: If true, show what would happen without applying.
         """
+        import time as _time
+        _t0 = _time.monotonic_ns()
         result = await DecayManager.apply_decay(db, dry_run=dry_run)
+        _dur = int((_time.monotonic_ns() - _t0) / 1_000_000)
+        await _log_op(db, "decay", params={"dry_run": dry_run},
+                      result={"affected": result.get("affected", 0)}, duration_ms=_dur)
         return json.dumps(result)
 
     # ── stats ──────────────────────────────────────────────────────────────
@@ -950,6 +1003,8 @@ def register_tools(
             - orphan_memories: memories whose file_path no longer exists
             - new_files: changed files with no existing memory
         """
+        import time as _time
+        _t0 = _time.monotonic_ns()
         # 1. Get all memories with file_path for this project
         all_mems = await db.get_all_memories(project=project, deprecated=False)
         ref_mems = [m for m in all_mems if m.file_path]
@@ -991,11 +1046,17 @@ def register_tools(
                         "issue": "file_deleted_or_renamed",
                     })
 
+        _dur = int((_time.monotonic_ns() - _t0) / 1_000_000)
+        _res_summary = f"{len(stale)} stale, {len(orphans)} orphans, {len(new_files)} new files"
+        await _log_op(db, "sync_codebase", project=project,
+                      params={"changed_files": changed_files},
+                      result={"stale": len(stale), "orphans": len(orphans), "new_files": len(new_files)},
+                      duration_ms=_dur)
         return json.dumps({
             "stale_memories": stale,
             "orphan_memories": orphans,
             "new_files_without_memory": new_files,
-            "summary": f"{len(stale)} stale, {len(orphans)} orphans, {len(new_files)} new files",
+            "summary": _res_summary,
         }, indent=2)
 
     # ── diagnose ──────────────────────────────────────────────────────

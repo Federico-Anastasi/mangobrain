@@ -1,12 +1,13 @@
+import { useState } from "react";
 import { useProject } from "../context/ProjectContext.tsx";
-import { useAdvancedStats, useElaborations, useDiagnose } from "../hooks/useApi.ts";
-import type { Prescription } from "../types/index.ts";
+import { useAdvancedStats, useElaborations, useOperations, useDiagnose } from "../hooks/useApi.ts";
+import type { Prescription, OperationLog } from "../types/index.ts";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
   AreaChart, Area, RadarChart, Radar, PolarGrid, PolarAngleAxis,
   PieChart, Pie, Cell,
 } from "recharts";
-import { CheckCircle, Info, TrendingUp, GitFork, Eye, Layers, Shield } from "lucide-react";
+import { CheckCircle, Info, TrendingUp, GitFork, Eye, Layers, Shield, Activity } from "lucide-react";
 
 const COLORS = {
   purple: "#8b5cf6",
@@ -95,6 +96,8 @@ export default function Monitoring() {
   const { data: adv, loading } = useAdvancedStats(project || undefined);
   const { data: diag } = useDiagnose(project || undefined);
   const { data: elabData } = useElaborations();
+  const [opsToolFilter, setOpsToolFilter] = useState<string>("");
+  const { data: opsData } = useOperations(project || undefined, opsToolFilter || undefined);
 
   if (loading || !adv) {
     return (
@@ -462,6 +465,115 @@ export default function Monitoring() {
           </div>
         )}
       </div>
+
+      {/* ─── Row 8: Operation Log ─── */}
+      <OperationLogSection ops={opsData?.items ?? []} toolFilter={opsToolFilter} onToolFilterChange={setOpsToolFilter} />
+    </div>
+  );
+}
+
+const TOOL_COLORS: Record<string, string> = {
+  remember: "bg-blue-500/20 text-blue-300",
+  memorize: "bg-green-500/20 text-green-300",
+  elaborate: "bg-purple-500/20 text-purple-300",
+  update_memory: "bg-cyan-500/20 text-cyan-300",
+  sync_codebase: "bg-orange-500/20 text-orange-300",
+  decay: "bg-yellow-500/20 text-yellow-300",
+  reinforce: "bg-pink-500/20 text-pink-300",
+};
+
+const TOOL_OPTIONS = ["", "remember", "memorize", "elaborate", "update_memory", "sync_codebase", "decay", "reinforce"];
+
+function OperationLogSection({ ops, toolFilter, onToolFilterChange }: {
+  ops: OperationLog[];
+  toolFilter: string;
+  onToolFilterChange: (v: string) => void;
+}) {
+  const parseJson = (s: string | null): Record<string, unknown> | null => {
+    if (!s) return null;
+    try { return JSON.parse(s); } catch { return null; }
+  };
+
+  return (
+    <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Activity className="w-4 h-4 text-slate-400" />
+          <h3 className="text-sm font-medium text-slate-400">Operation Log</h3>
+          <span className="text-xs text-slate-500">{ops.length} entries</span>
+        </div>
+        <select
+          value={toolFilter}
+          onChange={(e) => onToolFilterChange(e.target.value)}
+          className="text-xs bg-slate-700 text-slate-300 border border-slate-600 rounded px-2 py-1"
+        >
+          <option value="">All tools</option>
+          {TOOL_OPTIONS.filter(Boolean).map((t) => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
+      </div>
+      {ops.length === 0 ? (
+        <p className="text-slate-500 text-sm">No operations logged yet</p>
+      ) : (
+        <div className="overflow-auto max-h-80">
+          <table className="w-full text-sm">
+            <thead className="sticky top-0 bg-slate-800">
+              <tr className="text-slate-400 border-b border-slate-700">
+                <th className="text-left py-2 px-3 font-medium">Time</th>
+                <th className="text-left py-2 px-3 font-medium">Tool</th>
+                <th className="text-left py-2 px-3 font-medium">Params</th>
+                <th className="text-left py-2 px-3 font-medium">Result</th>
+                <th className="text-right py-2 px-3 font-medium">Duration</th>
+                <th className="text-left py-2 px-3 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ops.map((op) => {
+                const params = parseJson(op.params);
+                const result = parseJson(op.result);
+                const toolClass = TOOL_COLORS[op.tool] ?? "bg-slate-500/20 text-slate-300";
+                return (
+                  <tr key={op.id} className="border-b border-slate-800 hover:bg-slate-700/20">
+                    <td className="py-2 px-3 text-slate-300 text-xs whitespace-nowrap">
+                      {op.started_at ? new Date(op.started_at).toLocaleString("it-IT", {
+                        day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit",
+                      }) : "—"}
+                    </td>
+                    <td className="py-2 px-3">
+                      <span className={`px-2 py-0.5 rounded text-xs ${toolClass}`}>{op.tool}</span>
+                    </td>
+                    <td className="py-2 px-3 text-xs text-slate-400 max-w-48 truncate" title={op.params ?? ""}>
+                      {params ? Object.entries(params).map(([k, v]) => (
+                        <span key={k} className="mr-2">
+                          <span className="text-slate-500">{k}:</span>{" "}
+                          <span className="text-slate-300">{typeof v === "string" ? (v.length > 30 ? v.slice(0, 30) + "..." : v) : JSON.stringify(v)}</span>
+                        </span>
+                      )) : "—"}
+                    </td>
+                    <td className="py-2 px-3 text-xs text-slate-400 max-w-40 truncate" title={op.result ?? ""}>
+                      {result ? Object.entries(result).map(([k, v]) => (
+                        <span key={k} className="mr-2">
+                          <span className="text-slate-500">{k}:</span>{" "}
+                          <span className="text-slate-300">{String(v)}</span>
+                        </span>
+                      )) : "—"}
+                    </td>
+                    <td className="py-2 px-3 text-right text-xs text-slate-400 font-mono">
+                      {op.duration_ms != null ? (op.duration_ms > 1000 ? `${(op.duration_ms / 1000).toFixed(1)}s` : `${op.duration_ms}ms`) : "—"}
+                    </td>
+                    <td className="py-2 px-3">
+                      <span className={`px-2 py-0.5 rounded text-xs ${op.status === "ok" ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"}`}>
+                        {op.status}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
