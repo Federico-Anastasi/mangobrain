@@ -14,15 +14,15 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/mangobrain/"><img src="https://img.shields.io/pypi/v/mangobrain?style=flat-square&color=7c3aed&label=PyPI" /></a>
-  <img src="https://img.shields.io/badge/v3.3.0-7c3aed?style=flat-square" />
+  <a href="https://pypi.org/project/mango-brain/"><img src="https://img.shields.io/pypi/v/mangobrain?style=flat-square&color=7c3aed&label=PyPI" /></a>
+  <img src="https://img.shields.io/badge/v3.3.2-7c3aed?style=flat-square" />
   <img src="https://img.shields.io/badge/python-3.11+-blue?style=flat-square&logo=python&logoColor=white" />
   <img src="https://img.shields.io/badge/MCP-compatible-8A2BE2?style=flat-square" />
   <img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" />
 </p>
 
 <p align="center">
-  <a href="https://mangobrain.dev">Website</a> · <a href="#getting-started">Install</a> · <a href="https://pypi.org/project/mangobrain/">PyPI</a>
+  <a href="https://mangobrain.mango-dev.space">Website</a> · <a href="#getting-started">Install</a> · <a href="https://pypi.org/project/mango-brain/">PyPI</a>
 </p>
 
 ---

@@ -625,7 +625,8 @@ class Database:
             clauses.append("m.project = ?")
             params.append(project)
         where = f"WHERE {' AND '.join(clauses)}"
-        # Priority: fewest edges first (sparse graph nodes need connections),
+        # Priority: never-elaborated memories first (regardless of edge count),
+        # then fewest edges (sparse nodes need connections),
         # then lowest elaboration_count, then oldest elaboration_date.
         cur = await self.conn.execute(
             f"""SELECT m.*
@@ -639,6 +640,7 @@ class Database:
                 ) ec ON m.id = ec.mid
                 {where}
                 ORDER BY
+                    CASE WHEN m.elaboration_count = 0 THEN 0 ELSE 1 END ASC,
                     COALESCE(ec.edge_count, 0) ASC,
                     m.elaboration_count ASC,
                     m.elaboration_date IS NOT NULL,

@@ -22,6 +22,8 @@ dashboard/.vite/
 .claude/
 MANGOBRAIN.md
 start.bat
+.mcp.json
+README_PROPOSAL.md
 tests/
 *.bak*
 api.log
