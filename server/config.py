@@ -164,6 +164,7 @@ QUICK_BUDGET = int(_get("retrieval", "quick_budget", "2000"))
 SESSION_QUICK_BUDGET = int(_get("retrieval", "session_quick_budget", "4000"))
 DEEP_MAX_RESULTS = int(_get("retrieval", "deep_max_results", "20"))
 QUICK_MAX_RESULTS = int(_get("retrieval", "quick_max_results", "6"))
+RECENT_MAX_RESULTS = int(_get("retrieval", "recent_max_results", "20"))
 RELEVANCE_THRESHOLD_RATIO = float(_get("retrieval", "deep_threshold", "0.78"))
 QUICK_RELEVANCE_THRESHOLD_RATIO = float(_get("retrieval", "quick_threshold", "0.85"))
 

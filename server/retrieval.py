@@ -185,10 +185,13 @@ class RetrievalEngine:
                 candidates.append((score / max(m.token_count, 1), score, m))
         candidates.sort(key=lambda x: x[0], reverse=True)
 
+        from server.config import RECENT_MAX_RESULTS
         selected: list[Memory] = []
         scores: list[float] = []
         total_tokens = 0
         for _, score, m in candidates:
+            if len(selected) >= RECENT_MAX_RESULTS:
+                break
             if total_tokens + m.token_count > budget:
                 continue
             selected.append(m)

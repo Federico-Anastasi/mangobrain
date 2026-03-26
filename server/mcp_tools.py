@@ -103,26 +103,9 @@ def register_tools(
                 recent_count = sum(1 for m in memories if m.id in recent_ids)
                 neighbor_count = len(memories) - recent_count
 
-                result = {
-                    "memories": [
-                        {
-                            "id": m.id,
-                            "content": m.content,
-                            "type": m.type.value if hasattr(m.type, 'value') else m.type,
-                            "project": m.project,
-                            "tags": m.tags,
-                            "relevance": round(scores[i], 4),
-                            "file_path": m.file_path,
-                            "code_signature": m.code_signature,
-                            "is_recent": m.id in recent_ids,
-                        }
-                        for i, m in enumerate(memories)
-                    ],
-                    "total_tokens": total_tokens,
-                    "count": len(memories),
-                    "recent_count": recent_count,
-                    "neighbor_count": neighbor_count,
-                }
+                count = len(memories)
+                recent_count_val = recent_count
+                neighbor_count_val = neighbor_count
             else:
                 if not query:
                     return json.dumps({"error": "query is required for deep/quick mode"})
@@ -130,29 +113,37 @@ def register_tools(
                     query=query, mode=mode, project=project,
                     budget=budget, session_id=session_id,
                 )
-                result = {
-                    "memories": [
-                        {
-                            "id": m.id,
-                            "content": m.content,
-                            "type": m.type.value if hasattr(m.type, 'value') else m.type,
-                            "project": m.project,
-                            "tags": m.tags,
-                            "relevance": round(scores[i], 4),
-                            "file_path": m.file_path,
-                            "code_signature": m.code_signature,
-                        }
-                        for i, m in enumerate(memories)
-                    ],
-                    "total_tokens": total_tokens,
-                    "count": len(memories),
-                }
+                count = len(memories)
+                recent_count_val = None
+                neighbor_count_val = None
+
+            # Format as readable text (not raw JSON)
             _dur = int((_time.monotonic_ns() - _t0) / 1_000_000)
             await _log_op(db, "remember", project=project,
                           params={"query": query, "mode": mode, "limit": limit},
-                          result={"count": result["count"], "total_tokens": result["total_tokens"]},
+                          result={"count": count, "total_tokens": total_tokens},
                           duration_ms=_dur)
-            return json.dumps(result, indent=2)
+
+            lines = []
+            header = f"{count} memories · {mode} mode · {_dur}ms"
+            if recent_count_val is not None:
+                header += f" · {recent_count_val} recent + {neighbor_count_val} neighbors"
+            lines.append(header)
+            lines.append("")
+
+            for i, m in enumerate(memories):
+                mtype = m.type.value if hasattr(m.type, 'value') else m.type
+                rel = round(scores[i], 4)
+                lines.append(f"[{mtype}] {m.content}")
+                meta_parts = []
+                if m.file_path:
+                    meta_parts.append(f"file: {m.file_path}")
+                meta_parts.append(f"relevance: {rel}")
+                meta_parts.append(f"id: {m.id}")
+                lines.append("  " + " · ".join(meta_parts))
+                lines.append("")
+
+            return "\n".join(lines)
         except ValueError as e:
             _dur = int((_time.monotonic_ns() - _t0) / 1_000_000)
             await _log_op(db, "remember", project=project,
