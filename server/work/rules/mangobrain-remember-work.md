@@ -1,67 +1,79 @@
 # MangoBrain Work — Query Strategy
 
-Hai accesso al tool MCP `remember` per recuperare informazioni dal progetto.
-Usalo spesso. La memoria contiene decisioni di brand, feedback, pattern, insight sul target e riferimenti che i documenti da soli non comunicano.
+You have access to the `remember` MCP tool to retrieve information from the project.
+Use it often. Memory contains brand decisions, feedback, patterns, target insights, and references that documents alone don't communicate.
 
-## Quando usare remember
+## When to use remember
 
-- **Inizio sessione**: contesto recente + quadro progetto
-- **Prima di creare contenuto**: query su brand, tone, audience per quel canale
-- **Quando l'utente chiede qualcosa di nuovo**: verifica se ci sono decisioni passate
-- **Quando l'utente dà feedback**: verifica se è un pattern (ha già detto la stessa cosa?)
-- **Fine sessione**: `remember(mode="recent")` per confermare cosa salvare
+- **Session start**: recent context + project overview
+- **Before creating content**: query brand, tone, audience for that channel
+- **When the user asks something new**: check for past decisions
+- **When the user gives feedback**: check if it's a pattern (have they said the same thing before?)
+- **End of session**: `remember(mode="recent")` to confirm what to save
 
-## Strategia multi-query (inizio sessione)
+## Multi-query strategy (session start)
 
-### 1. Recent — dove eravamo
+### 1. Recent — where we left off
 ```
 remember(mode="recent", project="{PROJECT}", limit=10, k_neighbors=2)
 ```
 
-### 2. Deep — contesto ampio sul topic
+### 2. Deep — broad context on the topic
 ```
-remember(query="[5-10 keyword dal topic richiesto]", mode="deep", project="{PROJECT}")
+remember(query="[5-10 keywords from the requested topic]", mode="deep", project="{PROJECT}")
 ```
 
-### 3. Quick — aree specifiche
+### 3. Quick — specific areas
 ```
 remember(query="[brand tone voice guidelines]", mode="quick", project="{PROJECT}")
 remember(query="[Instagram format carousel content rules]", mode="quick", project="{PROJECT}")
 ```
 
-## Come formulare le query
+## Query Language
 
-### Keyword > frasi naturali
-```
-BENE: "Instagram carousel CTA engagement caption hashtags"
-MALE: "come dovrei scrivere i post per Instagram"
-```
+**All remember() queries MUST use English keywords**, regardless of session language.
+Memories are stored in English — queries in other languages degrade retrieval by ~15-20%.
 
-### Nomi propri del dominio
 ```
-BENE: "target musician band rehearsal studio booking"
-MALE: "il nostro pubblico di riferimento"
+GOOD: remember(query="Instagram post engagement CTA caption", ...)
+BAD:  remember(query="post Instagram coinvolgimento didascalia", ...)
 ```
 
-### Mix area + specifico
+Always translate concepts before querying. The conversation stays in the user's language, but queries go to the DB in English.
+
+## How to formulate queries
+
+### Keywords > natural language
 ```
-BENE: "competitor pricing studio booking platform market"
-MALE: "analisi della concorrenza"
+GOOD: "Instagram carousel CTA engagement caption hashtags"
+BAD:  "how should I write Instagram posts"
 ```
 
-## Cross-project (se disponibile)
+### Domain proper names
+```
+GOOD: "target musician band rehearsal studio booking"
+BAD:  "our target audience"
+```
 
-Se il progetto ha una memoria Code associata, puoi pescare informazioni sul prodotto:
+### Mix area + specific
+```
+GOOD: "competitor pricing studio booking platform market"
+BAD:  "competitive analysis"
+```
+
+## Cross-project (if available)
+
+If the project has an associated Code memory, you can pull product information:
 ```
 remember(query="feature booking user flow value proposition", project="{CODE_PROJECT}", mode="quick")
 ```
 
-**REGOLA**: traduci sempre in linguaggio non tecnico prima di usare o mostrare queste informazioni all'utente.
+**RULE**: always translate to non-technical language before using or showing this information to the user.
 
 ## Quick vs Deep vs Recent
 
-| Mode | Risultati | Quando |
-|------|-----------|--------|
-| deep | ~20 | Inizio sessione, strategia, analisi ampia |
-| quick | ~6 | Mid-session, area specifica, lookup veloce |
-| recent | ~15 | Inizio sessione, capire WIP e stato |
+| Mode | Results | When |
+|------|---------|------|
+| deep | ~20 | Session start, strategy, broad analysis |
+| quick | ~6 | Mid-session, specific area, quick lookup |
+| recent | ~15 | Session start, understand WIP and state |

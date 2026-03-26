@@ -1,43 +1,48 @@
 # MangoBrain Work — Workflow
 
-MangoBrain fornisce memoria persistente tra sessioni. Questa rule descrive come usarla nel flusso di lavoro quotidiano.
+MangoBrain provides persistent memory across sessions. This rule describes how to use it in daily workflow.
 
-## Principio
+## Principle
 
-La memoria non è un file da consultare. È un sistema attivo: chiedi quello che ti serve, quando ti serve. Contiene decisioni di brand, feedback dell'utente, insight sul target, pattern di contenuto, errori passati — conoscenza che i documenti da soli non trasmettono.
+Memory is not a file to consult. It's an active system: ask for what you need, when you need it. It contains brand decisions, user feedback, target insights, content patterns, past mistakes — knowledge that documents alone don't transmit.
 
-## Integrazione con /brief
+## Query Language
 
-**INTAKE**: remember recent + deep + quick → contesto pieno prima di fare domande
-**CLARIFICATION**: usa il contesto per NON chiedere cose che già sai
-**MATERIAL EXPLORATION**: cerca nei documenti E nella memoria
-**BRIEF**: il brief è informato dalla storia del progetto
+**All remember() queries MUST use English keywords**, regardless of session language.
+Memories are stored in English — queries in other languages degrade retrieval by ~15-20%. The conversation stays in the user's language, but queries go to the DB in English.
 
-## Integrazione con /create
+## Integration with /brief
 
-**RESEARCH**: il Researcher pesca dalla memoria per brand, tone, audience, past content
-**CREATION**: il Creator riceve contesto pre-digerito (non fa query)
-**REVIEW**: il Reviewer confronta con decisioni passate e feedback storici
-**CLOSE**: il Mem-manager salva decisioni, feedback, pattern nuovi
+**INTAKE**: remember recent + deep + quick → full context before asking questions
+**CLARIFICATION**: use context to NOT ask things you already know
+**MATERIAL EXPLORATION**: search documents AND memory
+**BRIEF**: the brief is informed by project history
 
-## Sessioni libere
+## Integration with /create
 
-Per sessioni senza /create (brainstorm, analisi, strategia):
-- Usa `remember` durante la sessione
-- A fine sessione: `/memorize-work`
+**RESEARCH**: the Researcher pulls from memory for brand, tone, audience, past content
+**CREATION**: the Creator receives pre-digested context (does not query)
+**REVIEW**: the Reviewer compares against past decisions and historical feedback
+**CLOSE**: the Mem-manager saves new decisions, feedback, patterns
 
-## Cosa memorizzare e cosa no
+## Free sessions
 
-### SÌ — produce conoscenza riutilizzabile
-- Decisione di brand ("usiamo il teal come colore primario")
-- Feedback utente ("il tono era troppo formale, preferisce casual")
-- Insight sul target ("i musicisti under 25 preferiscono Reel ai post statici")
-- Content pattern ("i carousel con domanda nel titolo performano meglio")
-- Scelta strategica ("per il lancio puntiamo su Instagram + TikTok, no LinkedIn")
-- Errore da non ripetere ("l'ultima CTA era troppo aggressiva")
+For sessions without /create (brainstorm, analysis, strategy):
+- Use `remember` during the session
+- At end of session: `/memorize-work`
 
-### NO — non serve memorizzarlo
-- Bozze scartate e iterazioni intermedie
-- Informazioni già nei rule files (quelli sono auto-caricati ogni sessione)
-- Fatti generici non specifici al progetto
-- Contenuto già prodotto (il file esiste, non serve duplicarlo in memoria)
+## What to memorize and what not to
+
+### YES — produces reusable knowledge
+- Brand decision ("we use teal as primary color")
+- User feedback ("the tone was too formal, prefers casual")
+- Target insight ("musicians under 25 prefer Reels over static posts")
+- Content pattern ("carousels with a question in the title perform better")
+- Strategic choice ("for launch we focus on Instagram + TikTok, no LinkedIn")
+- Mistake not to repeat ("the last CTA was too aggressive")
+
+### NO — not worth memorizing
+- Discarded drafts and intermediate iterations
+- Information already in rule files (those are auto-loaded every session)
+- Generic facts not specific to the project
+- Content already produced (the file exists, no need to duplicate it in memory)

@@ -1,19 +1,19 @@
-# Prodotto
+# Product
 
-## Cosa è
-{nome}: {descrizione in una frase}
+## What it is
+{name}: {one-sentence description}
 
 ## Value proposition
-{Perché un utente dovrebbe usarlo — il beneficio principale, non la feature}
+{Why a user should use it — the main benefit, not the feature}
 
-## Feature principali
-{Lista delle feature chiave dal punto di vista dell'utente, non tecnico}
+## Key features
+{List of key features from the user's perspective, not technical}
 - ...
 
-## Differenziatori
-{Cosa lo rende diverso dai competitor — il motivo per cui qualcuno sceglie questo}
+## Differentiators
+{What makes it different from competitors — the reason someone chooses this}
 - ...
 
-## Stato attuale
-{Pre-lancio / Live / Beta / etc.}
-{Eventuali limitazioni note da comunicare o da NON comunicare}
+## Current state
+{Pre-launch / Live / Beta / etc.}
+{Any known limitations to communicate or NOT communicate}

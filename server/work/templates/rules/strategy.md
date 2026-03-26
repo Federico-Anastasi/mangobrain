@@ -1,27 +1,27 @@
-# Strategia
+# Strategy
 
-## Obiettivi
-{Obiettivi attuali con orizzonte temporale. Aggiornare quando cambiano.}
+## Goals
+{Current goals with time horizon. Update when they change.}
 
-### Breve termine ({mese/quarter})
+### Short term ({month/quarter})
 - ...
 
-### Medio termine ({6-12 mesi})
+### Medium term ({6-12 months})
 - ...
 
-## KPI
-| Metrica | Target | Attuale | Dove si misura |
-|---------|--------|---------|----------------|
-| {es. follower Instagram} | {target} | {attuale} | {tool/piattaforma} |
+## KPIs
+| Metric | Target | Current | Where to measure |
+|--------|--------|---------|-----------------|
+| {e.g. Instagram followers} | {target} | {current} | {tool/platform} |
 | ... | | | |
 
-## Competitor
-| Nome | Cosa fanno bene | Cosa fanno male | Note |
-|------|----------------|-----------------|------|
+## Competitors
+| Name | What they do well | What they do poorly | Notes |
+|------|-------------------|---------------------|-------|
 | ... | | | |
 
 ## Budget
-{Risorse disponibili — economiche, tempo, persone. Vincoli reali.}
+{Available resources — financial, time, people. Real constraints.}
 
-## Decisioni strategiche
-{Decisioni prese e motivazioni. Questa sezione cresce nel tempo come log.}
+## Strategic decisions
+{Decisions made and motivations. This section grows over time as a log.}

@@ -683,10 +683,17 @@ apply_elaboration, reinforce, decay, stats, diagnose, list_memories, sync_codeba
 
 def main() -> None:
     """CLI entry point."""
+    from importlib.metadata import version as pkg_version
+
     parser = argparse.ArgumentParser(
         prog="mangobrain",
         description="MangoBrain — Persistent memory + workflow system for Claude Code",
     )
+    try:
+        ver = pkg_version("mango-brain")
+    except Exception:
+        ver = "dev"
+    parser.add_argument("--version", "-V", action="version", version=f"%(prog)s {ver}")
     sub = parser.add_subparsers(dest="command")
 
     # serve

@@ -1,21 +1,21 @@
 # Audience
 
-## Target primario
-- **Chi sono**: {descrizione demografica e comportamentale}
-- **Cosa cercano**: {bisogno principale}
-- **Pain point**: {frustrazione principale che il prodotto risolve}
-- **Come parlano**: {linguaggio, riferimenti culturali, livello di formalità}
+## Primary target
+- **Who they are**: {demographic and behavioral description}
+- **What they seek**: {main need}
+- **Pain point**: {main frustration the product solves}
+- **How they talk**: {language, cultural references, formality level}
 
-## Target secondario (se presente)
+## Secondary target (if applicable)
 - ...
 
 ## Customer journey
-| Fase | Cosa pensano | Cosa facciamo |
-|------|-------------|---------------|
-| Awareness | {come ci scoprono} | {canali, messaggi} |
-| Consideration | {dubbi, confronti} | {contenuti che risolvono i dubbi} |
-| Conversion | {cosa li convince} | {CTA, offerte, trigger} |
-| Retention | {perché restano} | {comunicazione post-acquisto} |
+| Phase | What they think | What we do |
+|-------|----------------|------------|
+| Awareness | {how they discover us} | {channels, messages} |
+| Consideration | {doubts, comparisons} | {content that resolves doubts} |
+| Conversion | {what convinces them} | {CTA, offers, triggers} |
+| Retention | {why they stay} | {post-purchase communication} |
 
-## Insight
-{Osservazioni qualitative sul target — feedback ricevuti, pattern notati, intuizioni. Questa sezione cresce nel tempo.}
+## Insights
+{Qualitative observations about the target — received feedback, noticed patterns, intuitions. This section grows over time.}

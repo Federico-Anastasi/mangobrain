@@ -1,98 +1,103 @@
 # MangoBrain — Workflow Integration
 
-MangoBrain fornisce memoria persistente e associativa tra sessioni Claude Code. Questa rule descrive come e quando usarla nel flusso di lavoro quotidiano.
+MangoBrain provides persistent associative memory across Claude Code sessions. This rule describes how and when to use it in daily workflow.
 
 ## Server
 
-MangoBrain richiede il server attivo per funzionare. Se l'utente chiede di avviarlo o se i tool MCP non rispondono:
+MangoBrain requires the server to be running. If the user asks to start it or if MCP tools are not responding:
 ```
-mangobrain serve --api    # avvia server + dashboard (http://localhost:3101)
+mangobrain serve --api    # start server + dashboard (http://localhost:3101)
 ```
-Eseguilo in background. Se il server e' gia' attivo, non serve riavviarlo.
+Run it in the background. If the server is already running, no need to restart.
 
 ## Overview
 
-MangoBrain non e' un file da leggere all'inizio. E' un sistema di retrieval attivo: chiedi quello che ti serve, quando ti serve. Le memorie contengono bug passati, decisioni architetturali, pattern, gotcha, riferimenti a utility e componenti — conoscenza che il codice da solo non comunica.
+MangoBrain is not a file to read at the start. It's an active retrieval system: ask for what you need, when you need it. Memories contain past bugs, architectural decisions, patterns, gotchas, references to utilities and components — knowledge that code alone doesn't communicate.
 
-## Integrazione con /discuss
+## Query Language
 
-**INTAKE** (inizio discussione):
-1. `remember(mode="recent")` — contesto recente, WIP, decisioni
-2. Identifica 2-3 aree tecniche del topic
-3. `remember(mode="deep", query="[topic in max 10 keyword]")` — quadro generale
-4. 1-2x `remember(mode="quick", query="[nomi specifici per area]")` — dettagli mirati
-5. Mostra all'utente le memorie rilevanti come contesto
+**All remember() queries MUST use English keywords**, regardless of session language.
+Memories are stored in English — queries in other languages degrade retrieval by ~15-20%. The conversation stays in the user's language, but queries go to the DB in English.
 
-**EXPLORE** (analisi codice):
-- L'analyzer esplora il codice, arricchito dal contesto delle memorie
-- Se emerge un'area non ancora esplorata, fai una quick query prima di rispondere
+## Integration with /discuss
 
-**BRAINSTORM** (discussione):
-- Le memorie informano il brainstorm:
-  - Bug passati nella stessa area: "attenzione, l'ultima volta..."
-  - Decisioni architetturali: "questo era stato deciso perche'..."
-  - Pattern consolidati: "il pattern usato altrove e'..."
+**INTAKE** (start of discussion):
+1. `remember(mode="recent")` — recent context, WIP, decisions
+2. Identify 2-3 technical areas of the topic
+3. `remember(mode="deep", query="[topic in max 10 keywords]")` — big picture
+4. 1-2x `remember(mode="quick", query="[specific names per area]")` — targeted details
+5. Show relevant memories to the user as context
 
-## Integrazione con /task
+**EXPLORE** (code analysis):
+- The analyzer explores the code, enriched by memory context
+- If an unexplored area emerges, do a quick query before responding
 
-**ANALYZE** (inizio task):
-1. `remember(mode="recent")` — WIP, contesto
-2. Strategia multi-query (1 deep + N quick) — vedi mangobrain-remember.md
-3. Le memorie guidano l'analisi: sai gia' i gotcha, i pattern, le utility disponibili
+**BRAINSTORM** (discussion):
+- Memories inform the brainstorm:
+  - Past bugs in the same area: "careful, last time..."
+  - Architectural decisions: "this was decided because..."
+  - Consolidated patterns: "the pattern used elsewhere is..."
 
-**Mid-task** (durante lo sviluppo):
-- Prima di toccare un'area nuova: quick query
-- Quando trovi un bug: quick query per pattern noti
-- Prima di creare un componente: quick query per verificare se esiste gia'
+## Integration with /task
 
-**CLOSE** (fine task):
-Il main orchestrator spawna il **mem-manager** come sub-agent con:
-- Summary del lavoro fatto
-- Lista file modificati (git diff)
-- Decisioni prese
-- WIP/blocker
+**ANALYZE** (task start):
+1. `remember(mode="recent")` — WIP, context
+2. Multi-query strategy (1 deep + N quick) — see mangobrain-remember.md
+3. Memories guide the analysis: you already know gotchas, patterns, available utilities
 
-Il mem-manager autonomamente:
-1. Crea memorie per il lavoro significativo (memorize)
-2. Sincronizza file cambiati con memorie esistenti (sync_codebase + update_memory)
-3. Registra WIP se presente (memorize con tag "state", "wip")
+**Mid-task** (during development):
+- Before touching a new area: quick query
+- When you find a bug: quick query for known patterns
+- Before creating a component: quick query to check if something similar exists
 
-## Sessioni libere (senza /task)
+**CLOSE** (end of task):
+The main orchestrator spawns the **mem-manager** as a sub-agent with:
+- Summary of work done
+- List of modified files (git diff)
+- Decisions made
+- WIP/blockers
 
-Per sessioni senza /task (discussioni, esplorazioni, fix rapidi):
-- Usa `remember` durante la sessione come descritto sopra
-- A fine sessione, usa **/memorize** per sincronizzare il lavoro in memoria
-- /memorize prepara un summary e spawna il mem-manager
+The mem-manager autonomously:
+1. Creates memories for significant work (memorize)
+2. Syncs changed files with existing memories (sync_codebase + update_memory)
+3. Records WIP if present (memorize with tags "state", "wip")
 
-## Manutenzione periodica
+## Free sessions (without /task)
 
-| Attivita | Cadenza | Skill | Cosa fa |
-|----------|---------|-------|---------|
-| Elaboration | Settimanale | /elaborate | Consolida, crea edge, astrazioni, depreca duplicati |
-| Health check | Mensile | /health-check | Diagnosi struttura + contenuto, fix mirati |
-| Smoke test | Post-init, post-elaboration | /smoke-test | Verifica qualita' retrieval con query test |
+For sessions without /task (discussions, explorations, quick fixes):
+- Use `remember` during the session as described above
+- At end of session, use **/memorize** to sync work to memory
+- /memorize prepares a summary and spawns the mem-manager
 
-## Il mem-manager agent
+## Periodic maintenance
 
-Il mem-manager e' un sub-agent specializzato nella gestione della memoria. Non e' un agente interattivo — viene spawnato dal main con un contesto preciso e opera autonomamente.
+| Activity | Frequency | Skill | What it does |
+|----------|-----------|-------|--------------|
+| Elaboration | Weekly | /elaborate | Consolidates, creates edges, abstractions, deprecates duplicates |
+| Health check | Monthly | /health-check | Diagnosis of structure + content, targeted fixes |
+| Smoke test | Post-init, post-elaboration | /smoke-test | Verifies retrieval quality with test queries |
 
-**Cosa fa:**
-- Crea memorie atomiche (2-5 righe, inglese, self-contained)
-- Classifica: episodic (eventi), semantic (fatti), procedural (how-to)
-- Tagga: 3-6 tag lowercase
-- Aggiunge relazioni tra memorie (relates_to, depends_on, caused_by)
-- Sincronizza file cambiati con memorie esistenti
-- Registra WIP per la prossima sessione
+## The mem-manager agent
 
-**Cosa NON fa:**
-- Non interagisce con l'utente
-- Non prende decisioni architetturali
+The mem-manager is a specialized sub-agent for memory management. It's not interactive — it's spawned by main with precise context and operates autonomously.
 
-## Quando NON usare la memoria
+**What it does:**
+- Creates atomic memories (2-5 lines, English, self-contained)
+- Classifies: episodic (events), semantic (facts), procedural (how-to)
+- Tags: 3-6 lowercase tags
+- Adds relationships between memories (relates_to, depends_on, caused_by)
+- Syncs changed files with existing memories
+- Records WIP for the next session
 
-- **Task puramente meccanici**: "rinomina questa variabile", "aggiungi un import"
-- **Fix di una riga**: se il fix e' ovvio e non c'e' nessuna lezione da imparare
-- **Operazioni di routine**: npm install, docker restart, git merge
-- **Quando il contesto e' gia' tutto nel task**: se il task e' auto-contenuto e non tocca aree complesse
+**What it does NOT do:**
+- Does not interact with the user
+- Does not make architectural decisions
 
-La regola: se il lavoro non produce conoscenza riutilizzabile, non serve memorizzarlo.
+## When NOT to use memory
+
+- **Purely mechanical tasks**: "rename this variable", "add an import"
+- **One-line fixes**: if the fix is obvious and there's no lesson to learn
+- **Routine operations**: npm install, docker restart, git merge
+- **When context is entirely in the task**: if the task is self-contained and doesn't touch complex areas
+
+The rule: if the work doesn't produce reusable knowledge, it doesn't need to be memorized.

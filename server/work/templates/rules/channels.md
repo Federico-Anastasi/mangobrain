@@ -1,24 +1,24 @@
-# Canali e Formati
+# Channels and Formats
 
-## Canali attivi
-{Lista dei canali su cui il brand è presente o vuole essere presente}
+## Active channels
+{List of channels the brand is present on or wants to be present on}
 
-### {Canale 1 — es. Instagram}
-- **Obiettivo**: {awareness / engagement / conversion}
-- **Formati**: {Reel, carousel, stories, post singolo}
-- **Frequenza**: {es. 3 post/settimana + stories quotidiane}
-- **Tono specifico**: {se diverso dal tono generale}
-- **Hashtag strategy**: {categorie di hashtag, volumi}
-- **Best practice note**: {cosa ha funzionato, cosa no — cresce nel tempo}
+### {Channel 1 — e.g. Instagram}
+- **Goal**: {awareness / engagement / conversion}
+- **Formats**: {Reel, carousel, stories, single post}
+- **Frequency**: {e.g. 3 posts/week + daily stories}
+- **Specific tone**: {if different from general tone}
+- **Hashtag strategy**: {hashtag categories, volumes}
+- **Best practice notes**: {what worked, what didn't — grows over time}
 
-### {Canale 2}
+### {Channel 2}
 - ...
 
-## Calendario editoriale
-{Struttura del piano editoriale — cadenza, temi ricorrenti, momenti chiave}
+## Editorial calendar
+{Editorial plan structure — cadence, recurring themes, key moments}
 
-## Tool
-- **Visual**: {Canva / altro}
-- **Video**: {Remotion / altro}
-- **Scheduling**: {se presente}
-- **Analytics**: {se presente}
+## Tools
+- **Visual**: {Canva / other}
+- **Video**: {Remotion / other}
+- **Scheduling**: {if applicable}
+- **Analytics**: {if applicable}

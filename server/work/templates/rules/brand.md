@@ -1,20 +1,20 @@
 # Brand
 
-## Identità
-- **Nome**: {nome progetto/brand}
-- **Tagline**: {frase identificativa}
-- **Personalità**: {3-5 aggettivi che descrivono il brand come se fosse una persona}
+## Identity
+- **Name**: {project/brand name}
+- **Tagline**: {identifying phrase}
+- **Personality**: {3-5 adjectives describing the brand as if it were a person}
 
 ## Visual identity
-- **Palette primaria**: {colori principali con hex}
-- **Palette secondaria**: {accenti, colori di supporto}
-- **Font**: {tipografia usata o desiderata}
-- **Logo**: {descrizione, regole d'uso}
-- **Stile visivo**: {minimal/bold/illustrato/fotografico/etc.}
+- **Primary palette**: {main colors with hex}
+- **Secondary palette**: {accents, supporting colors}
+- **Font**: {typography used or desired}
+- **Logo**: {description, usage rules}
+- **Visual style**: {minimal/bold/illustrated/photographic/etc.}
 
-## Posizionamento
-{Una frase che dice: per [chi], [prodotto] è [categoria] che [beneficio] a differenza di [competitor/alternativa]}
+## Positioning
+{One sentence: for [who], [product] is [category] that [benefit] unlike [competitor/alternative]}
 
-## Valori
-{2-4 valori fondanti. Per ogni valore, una riga che spiega come si manifesta nella comunicazione}
+## Values
+{2-4 core values. For each value, one line explaining how it shows in communication}
 - ...
