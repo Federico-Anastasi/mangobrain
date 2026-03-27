@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useProject } from "../context/ProjectContext.tsx";
 import { useSetupAll, useSetup } from "../hooks/useApi.ts";
 import type { SetupStep, SetupStepStatus } from "../types/index.ts";
 import {
@@ -225,12 +226,12 @@ function StepCard({
 }
 
 export default function Setup() {
-  const { data: projects, loading: loadingProjects } = useSetupAll();
-  const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const { project: globalProject, setProject } = useProject();
+  const { data: projects, loading: loadingProjects } = useSetupAll(true);
 
-  // Auto-select first project
-  const activeProject = selectedProject || (projects && projects.length > 0 ? projects[0].project : null);
-  const { data: setup, loading: loadingSetup } = useSetup(activeProject);
+  // Use global project if set, otherwise auto-select first project
+  const activeProject = globalProject || (projects && projects.length > 0 ? projects[0].project : null);
+  const { data: setup, loading: loadingSetup } = useSetup(activeProject, true);
 
   const steps = setup?.steps || [];
   const activeStepIndex = steps.findIndex(
@@ -277,7 +278,7 @@ export default function Setup() {
         {projects.length > 1 && (
           <select
             value={activeProject || ""}
-            onChange={(e) => setSelectedProject(e.target.value)}
+            onChange={(e) => setProject(e.target.value)}
             className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white"
           >
             {projects.map((p) => (

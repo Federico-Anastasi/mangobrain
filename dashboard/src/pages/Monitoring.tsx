@@ -93,11 +93,11 @@ function StatCard({ label, value, sub, color = "text-white" }: { label: string; 
 
 export default function Monitoring() {
   const { project } = useProject();
-  const { data: adv, loading } = useAdvancedStats(project || undefined);
-  const { data: diag } = useDiagnose(project || undefined);
-  const { data: elabData } = useElaborations();
+  const { data: adv, loading } = useAdvancedStats(project || undefined, true);
+  const { data: diag } = useDiagnose(project || undefined, true);
+  const { data: elabData } = useElaborations(true);
   const [opsToolFilter, setOpsToolFilter] = useState<string>("");
-  const { data: opsData } = useOperations(project || undefined, opsToolFilter || undefined);
+  const { data: opsData } = useOperations(project || undefined, opsToolFilter || undefined, true);
 
   if (loading || !adv) {
     return (

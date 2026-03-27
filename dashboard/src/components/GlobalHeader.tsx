@@ -17,8 +17,8 @@ export default function GlobalHeader() {
   const { project, setProject } = useProject();
   const title = PAGE_TITLES[pathname] ?? "";
 
-  // Guide and Setup don't need project filter
-  const showSelector = pathname !== "/guide" && pathname !== "/setup";
+  // Guide doesn't need project filter
+  const showSelector = pathname !== "/guide";
 
   return (
     <header className="shrink-0 flex items-center justify-between px-6 h-12 border-b border-slate-800 bg-slate-900/80">

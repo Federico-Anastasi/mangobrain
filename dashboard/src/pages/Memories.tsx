@@ -23,7 +23,7 @@ export default function Memories() {
     deprecated,
     limit,
     offset,
-  });
+  }, true);
 
   const memories = data?.items ?? [];
   const total = data?.total ?? 0;
