@@ -47,6 +47,15 @@ See `mangobrain-remember` rule for query formulation guidelines.
 Note any relevant memories — they inform what to look for and what to watch out for
 during code exploration.
 
+**Error handling**: If `remember()` returns a timeout, connection error, or a response
+containing `{"error": "..."}`, do NOT silently skip it. Instead:
+1. Set `mangobrain_status: "error"` in your output YAML with the error message
+2. Continue code exploration without memory context
+3. Note in your analysis that memory context was unavailable
+
+An empty result (0 memories) is NOT an error — it means no relevant memories exist.
+Only `{"error": "..."}` responses or tool call failures are errors.
+
 ### Step 3 — Explore Code
 
 Follow the task brief from Main. For each area:
@@ -103,6 +112,8 @@ Return a structured YAML block:
 ```yaml
 analysis:
   task_summary: "One-line restatement of what was asked"
+  mangobrain_status: "ok" | "error"     # MANDATORY — "error" if any remember() call failed
+  mangobrain_error: "error message"     # Only if mangobrain_status = "error"
   confidence: high | medium | low
   confidence_notes: "Why this confidence level"
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from datetime import datetime
 from typing import Optional
@@ -57,8 +58,8 @@ class RetrievalEngine:
                 raise ValueError("Session micro-query budget exhausted")
             budget = min(budget, remaining)
 
-        # 1. Embed query
-        query_emb = self.embedder.encode(query)
+        # 1. Embed query (in thread to avoid blocking event loop)
+        query_emb = await asyncio.to_thread(self.embedder.encode, query)
 
         # 2. Load all non-deprecated memories (filtered by project)
         memories = await self.db.get_all_memories(project=project, deprecated=False)

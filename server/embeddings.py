@@ -46,19 +46,22 @@ class Embedder:
 
     @property
     def dim(self) -> int:
-        assert self._dim is not None, "Model not loaded"
+        if self._dim is None:
+            raise RuntimeError("Embedding model not loaded yet — server is still initializing")
         return self._dim
 
     def encode(self, text: str) -> np.ndarray:
         """Encode a single text -> 1D float32 array."""
-        assert self._model is not None, "Model not loaded"
+        if self._model is None:
+            raise RuntimeError("Embedding model not loaded yet — server is still initializing")
         prefixed = BGE_PREFIX + text
         emb = self._model.encode(prefixed, normalize_embeddings=True)
         return emb.astype(np.float32)
 
     def encode_batch(self, texts: list[str]) -> np.ndarray:
         """Encode a batch -> 2D float32 array (N, dim)."""
-        assert self._model is not None, "Model not loaded"
+        if self._model is None:
+            raise RuntimeError("Embedding model not loaded yet — server is still initializing")
         prefixed = [BGE_PREFIX + t for t in texts]
         embs = self._model.encode(prefixed, normalize_embeddings=True, batch_size=32)
         return embs.astype(np.float32)

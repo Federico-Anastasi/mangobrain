@@ -46,6 +46,14 @@ remember(query="[specific component names] bug regression gotcha", mode="quick",
 
 Note relevant memories — they inform what to pay extra attention to during verification.
 
+**Error handling**: If `remember()` returns a timeout, connection error, or a response
+containing `{"error": "..."}`, do NOT silently skip it. Instead:
+1. Set `mangobrain_status: "error"` in your output YAML with the error message
+2. Continue verification without memory context (build/test/lint are the priority)
+3. Note that memory cross-reference (Step 9) was skipped due to MangoBrain unavailability
+
+An empty result (0 memories) is NOT an error — only `{"error": "..."}` or tool failures are errors.
+
 ### Step 3-6 — Run Verification Commands
 
 Run the verification commands specified in CLAUDE.md. Typical checks:
@@ -129,6 +137,8 @@ diagnostic_opinion:
 ```yaml
 verification:
   task_summary: "One-line restatement of what was verified"
+  mangobrain_status: "ok" | "error"     # MANDATORY — "error" if any remember() call failed
+  mangobrain_error: "error message"     # Only if mangobrain_status = "error"
   overall_status: pass | fail | partial
 
   build:

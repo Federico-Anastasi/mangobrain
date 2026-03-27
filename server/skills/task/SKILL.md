@@ -136,6 +136,35 @@ decisions, but /task must do its own ANALYZE and PLAN autonomously.
 
 ---
 
+## Pre-condition: MangoBrain Availability Check (MANDATORY)
+
+**BEFORE starting any phase**, call `ping()` to verify MangoBrain is online.
+
+```
+ping()
+```
+
+**Interpret the response:**
+- `{"status": "ok", "model_loaded": true}` → Proceed normally.
+- `{"status": "degraded", ...}` → Partially available. Inform user, ask whether to proceed without memory.
+- **Timeout / connection error / no response** → MangoBrain is **offline**. **STOP** and inform the user:
+
+```
+⚠️ MangoBrain is not responding. Memory context will not be available for this task.
+
+Options:
+1. Proceed without memory (analysis and execution will work, but no memory context or sync)
+2. Abort and fix MangoBrain first (run: mangobrain serve)
+
+Which do you prefer?
+```
+
+**Do NOT silently continue.** The user must explicitly authorize proceeding without memory.
+
+If user authorizes: set `MANGOBRAIN_OFFLINE = true`. Skip all `remember()` calls in ANALYZE, skip `remember()` in agent spawns (pass `mangobrain_available: false` to agents), and skip CLOSE phase entirely (inform user: "Run /memorize later to sync this work to memory.").
+
+---
+
 ## Workflow Overview
 
 | Phase | Key Actions | Output |
@@ -380,12 +409,33 @@ prompt: |
 MangoBrain tools may fail (server down, DB locked, timeout). When this happens,
 **do NOT silently continue** — the user must know and decide.
 
+### How to detect failures
+
+MCP tool failures manifest in three ways:
+1. **Timeout / connection error** — the tool call itself fails (no response)
+2. **Error JSON** — the tool returns `{"error": "..."}`. Check EVERY remember/memorize/sync response for an `"error"` key.
+3. **Unexpected format** — response is not valid JSON or not the expected structure
+
+**CRITICAL**: An empty result `[]` (0 memories) is NOT an error — it means the project has no memories yet. An `{"error": "..."}` response IS an error. Never confuse the two.
+
+### Phase-by-phase handling
+
 | Phase | If MangoBrain fails | Action |
 |-------|---------------------|--------|
+| Pre-condition (ping) | Server offline | **STOP**. Inform user. Ask to proceed without memory or fix first. |
 | ANALYZE (Main remember) | Stop and inform user | "MangoBrain is not responding. Proceed without memory context? (yes/no)" |
-| ANALYZE (analyzer remember) | Analyzer reports failure | Main informs user, asks whether to continue with code-only analysis |
-| VERIFY (verifier remember) | Verifier reports failure | Main informs user, continues verification (memory is secondary here) |
+| ANALYZE (analyzer remember) | Analyzer reports failure in output | Main informs user, asks whether to continue with code-only analysis |
+| VERIFY (verifier remember) | Verifier reports failure in output | Main informs user, continues verification (memory is secondary here) |
 | CLOSE (mem-manager) | Stop and inform user | "Memory sync failed. Run /memorize later to sync manually." |
+
+### What agents must do on failure
+
+When an agent (analyzer, verifier, mem-manager) encounters a MangoBrain tool failure:
+1. **Do NOT silently skip it** — include the failure prominently in the output YAML
+2. Add a `mangobrain_status: "error"` field with the error message
+3. Continue the rest of their work (code analysis, verification, etc.) but clearly mark that memory context was unavailable
+
+Main MUST check agent output for `mangobrain_status: "error"` and inform the user.
 
 **Rationale**: Working without memory context means missing gotchas, patterns, and
 past decisions. The user should make an informed choice, not discover later that

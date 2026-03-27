@@ -50,6 +50,21 @@ logging.basicConfig(
 logger = logging.getLogger("mangobrain")
 
 
+async def _load_embedding_model(embedder) -> None:
+    """Load embedding model in a thread to avoid blocking the event loop.
+
+    Wraps the synchronous SentenceTransformer load in asyncio.to_thread
+    so the MCP stdio connection can be established immediately.
+    """
+    try:
+        await asyncio.to_thread(embedder.load)
+        logger.info("Embedding model ready")
+    except Exception as e:
+        logger.error("Failed to load embedding model: %s", e)
+        # Don't crash — server stays alive but tools that need embeddings
+        # will return errors via ping(model_loaded=false)
+
+
 async def run_mcp_server() -> None:
     """Run the MCP server over stdio."""
     _check_embedding_deps()
@@ -61,7 +76,6 @@ async def run_mcp_server() -> None:
     logger.info("Database ready at %s", DB_PATH)
 
     embedder = Embedder(EMBEDDING_MODEL, EMBEDDING_DEVICE)
-    embedder.load()
 
     graph = GraphManager()
     retrieval = RetrievalEngine(db, embedder, graph)
@@ -69,6 +83,9 @@ async def run_mcp_server() -> None:
     server = FastMCP("mangobrain")
     register_tools(server, db, embedder, graph, retrieval)
     logger.info("MCP tools registered — running on stdio")
+
+    # Load embedding model in background thread — don't block stdio
+    asyncio.create_task(_load_embedding_model(embedder))
 
     await server.run_stdio_async()
     await db.close()
@@ -88,7 +105,11 @@ async def run_api_server() -> None:
 
     db = await Database.create(DB_PATH)
     embedder = Embedder(EMBEDDING_MODEL, EMBEDDING_DEVICE)
-    embedder.load()
+    # API server: load synchronously (no MCP timeout constraint)
+    try:
+        embedder.load()
+    except Exception as e:
+        logger.error("Failed to load embedding model: %s", e)
     graph = GraphManager()
     retrieval = RetrievalEngine(db, embedder, graph)
 
@@ -138,13 +159,15 @@ async def run_all() -> None:
 
     db = await Database.create(DB_PATH)
     embedder = Embedder(EMBEDDING_MODEL, EMBEDDING_DEVICE)
-    embedder.load()
     graph = GraphManager()
     retrieval = RetrievalEngine(db, embedder, graph)
 
-    # MCP server
+    # MCP server — register tools first, load model in background
     mcp_server = FastMCP("mangobrain")
     register_tools(mcp_server, db, embedder, graph, retrieval)
+
+    # Load embedding model in background thread — don't block MCP stdio
+    asyncio.create_task(_load_embedding_model(embedder))
 
     # API server
     import uvicorn

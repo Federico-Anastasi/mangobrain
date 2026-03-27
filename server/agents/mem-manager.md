@@ -178,6 +178,8 @@ If found: `update_memory()` if work continues, or deprecate if work is now compl
 
 ```yaml
 memory_sync:
+  mangobrain_status: "ok" | "error"     # MANDATORY — "error" if any MCP tool failed
+  mangobrain_error: "error message"     # Only if mangobrain_status = "error"
   memories_created: 5
   memories_updated: 2
   memories_deprecated: 0
@@ -202,6 +204,24 @@ memory_sync:
     new_files_memorized: 1
     new_files_skipped: 3
 ```
+
+---
+
+## MangoBrain Failure Handling
+
+All your tools depend on MangoBrain being online. If ANY MCP tool call (`remember`, `memorize`,
+`update_memory`, `sync_codebase`, `list_memories`) fails with a timeout, connection error,
+or returns `{"error": "..."}`:
+
+1. **Do NOT silently skip it.** Record the failure in your output YAML.
+2. **Try once more** — a single retry for transient errors.
+3. **If it fails again, STOP all memory operations** and set `mangobrain_status: "error"` in output.
+4. Report clearly to Main what succeeded and what failed.
+
+Main will inform the user: "Memory sync failed. Run /memorize later to sync manually."
+
+An empty result from `remember()` (0 memories) is NOT an error — it means no relevant
+memories exist. Only `{"error": "..."}` responses or tool call failures are errors.
 
 ---
 

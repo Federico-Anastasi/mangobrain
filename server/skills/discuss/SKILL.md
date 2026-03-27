@@ -101,6 +101,33 @@ If this file exists, this is the automation loop returning from `/task` executio
 **Duration**: Interactive, as long as needed
 **Goal**: Understand user intent and load memory context before exploring code
 
+#### Step 0: MangoBrain Availability Check (MANDATORY)
+
+**BEFORE any memory retrieval**, call `ping()` to verify MangoBrain is online.
+
+```
+ping()
+```
+
+**Interpret the response:**
+- `{"status": "ok", "model_loaded": true}` → MangoBrain is online. Proceed to Step 1A.
+- `{"status": "degraded", ...}` → MangoBrain is partially available (DB issue). Inform user and ask whether to proceed without memory.
+- **Timeout / connection error / no response** → MangoBrain is **offline**. **STOP** and inform the user:
+
+```
+⚠️ MangoBrain is not responding. Memory context will not be available for this session.
+
+Options:
+1. Proceed without memory (code exploration only, no past context)
+2. Abort and fix MangoBrain first (run: mangobrain serve)
+
+Which do you prefer?
+```
+
+**Do NOT silently continue without memory.** The user must explicitly choose to proceed.
+
+If user chooses option 1, set a mental flag: `MANGOBRAIN_OFFLINE = true`. Skip all `remember()` calls for the rest of this /discuss session and note in the task.md output that memory was unavailable.
+
 #### Step 1A: Memory Bootstrap
 
 Start IMMEDIATELY with memory retrieval. Do not wait for clarifying questions.
@@ -411,11 +438,22 @@ If discussion reveals **multiple independent tasks**:
 
 ### No MangoBrain Memories Available
 
-If `remember` returns empty or the project has no memories:
-```
-No memories found for this project. Proceeding with codebase exploration only.
-```
-The skill works fine without memory — all phases proceed normally.
+**Distinguish between these cases:**
+
+1. **`remember` returns empty results (0 memories)** → Legitimate. The project has no memories yet.
+   ```
+   No memories found for this project. Proceeding with codebase exploration only.
+   ```
+
+2. **`remember` returns `{"error": "..."}` or times out** → MangoBrain tool failure mid-session.
+   **STOP and inform the user:**
+   ```
+   ⚠️ MangoBrain remember() failed: [error message].
+   Memory context is unavailable. Proceed without memory? (yes/no)
+   ```
+   Do NOT silently continue. The user must decide.
+
+3. **`ping()` already confirmed offline (MANGOBRAIN_OFFLINE = true)** → Skip remember calls silently (user already authorized proceeding without memory in Step 0).
 
 ### Stale Memories Detected
 

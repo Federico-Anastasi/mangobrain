@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import uuid
@@ -64,6 +65,31 @@ def register_tools(
     retrieval: RetrievalEngine,
 ) -> None:
     """Register all MCP tools on the server."""
+
+    # ── ping ───────────────────────────────────────────────────────────────
+
+    @server.tool()
+    async def ping() -> str:
+        """Lightweight health check. Returns 'pong' if the server is alive and
+        the embedding model is loaded. Use this BEFORE any remember/memorize call
+        to verify MangoBrain is online.
+        """
+        status = {
+            "status": "ok",
+            "server": "mangobrain",
+            "embedding_model": embedder.model_name,
+            "embedding_device": embedder.device,
+            "model_loaded": embedder._model is not None,
+        }
+        try:
+            # Quick DB check — verify connection is alive
+            cursor = await db.conn.execute("SELECT COUNT(*) as cnt FROM memories")
+            row = await cursor.fetchone()
+            status["total_memories"] = row["cnt"] if row else 0
+        except Exception as e:
+            status["status"] = "degraded"
+            status["db_error"] = str(e)
+        return json.dumps(status)
 
     # ── remember ───────────────────────────────────────────────────────────
 
@@ -144,7 +170,7 @@ def register_tools(
                 lines.append("")
 
             return "\n".join(lines)
-        except ValueError as e:
+        except (ValueError, RuntimeError) as e:
             _dur = int((_time.monotonic_ns() - _t0) / 1_000_000)
             await _log_op(db, "remember", project=project,
                           params={"query": query, "mode": mode},
@@ -168,6 +194,10 @@ def register_tools(
         """
         import time as _time
         _t0 = _time.monotonic_ns()
+
+        if embedder._model is None:
+            return json.dumps({"error": "Embedding model not loaded yet — server is still initializing"})
+
         created = 0
         edges_created = 0
         duplicates_skipped = 0
@@ -179,8 +209,8 @@ def register_tools(
             if mi.project:
                 _project = mi.project
 
-            # Compute embedding
-            emb = embedder.encode(mi.content)
+            # Compute embedding (in thread to avoid blocking event loop)
+            emb = await asyncio.to_thread(embedder.encode, mi.content)
             emb_bytes = Embedder.embedding_to_bytes(emb)
 
             # Dedup check
@@ -220,7 +250,7 @@ def register_tools(
                         target_mem_id = rel.target_id
                 if not target_mem_id and rel.target_query and existing:
                     # Semantic search fallback
-                    rel_emb = embedder.encode(rel.target_query)
+                    rel_emb = await asyncio.to_thread(embedder.encode, rel.target_query)
                     sims = Embedder.cosine_similarity(rel_emb, existing_embs)
                     best_idx = int(sims.argmax())
                     if sims[best_idx] > 0.5:
@@ -482,6 +512,9 @@ def register_tools(
                 - edges_to_remove: [edge_id_strings]
                 - confirmed: [memory_id_strings] — IDs of memories reviewed but unchanged
         """
+        if embedder._model is None:
+            return json.dumps({"error": "Embedding model not loaded yet — server is still initializing"})
+
         eu = ElaborationUpdate(**updates)
         report = ElaborationReport()
         now = datetime.utcnow()
@@ -496,7 +529,7 @@ def register_tools(
 
         # Update memories (content changes apply to all, elaboration marking only for seeds)
         for mu in eu.memories_to_update:
-            emb = embedder.encode(mu.new_content)
+            emb = await asyncio.to_thread(embedder.encode, mu.new_content)
             fields: dict[str, Any] = {
                 "content": mu.new_content,
                 "embedding": Embedder.embedding_to_bytes(emb),
@@ -510,7 +543,7 @@ def register_tools(
 
         # Add new memories (always marked as elaborated)
         for mi in eu.memories_to_add:
-            emb = embedder.encode(mi.content)
+            emb = await asyncio.to_thread(embedder.encode, mi.content)
             memory = Memory(
                 content=mi.content,
                 embedding=Embedder.embedding_to_bytes(emb),
@@ -677,9 +710,11 @@ def register_tools(
         fields: dict[str, Any] = {}
 
         if content is not None:
+            if embedder._model is None:
+                return json.dumps({"error": "Embedding model not loaded yet — server is still initializing"})
             fields["content"] = content
             fields["token_count"] = count_tokens(content)
-            emb = embedder.encode(content)
+            emb = await asyncio.to_thread(embedder.encode, content)
             fields["embedding"] = Embedder.embedding_to_bytes(emb)
 
         if file_path is not None:
