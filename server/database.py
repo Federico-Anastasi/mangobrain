@@ -467,8 +467,8 @@ class Database:
     async def update_elaboration_log(self, log_id: str, fields: dict[str, Any]) -> bool:
         return await self.update_operation(log_id, fields)
 
-    async def get_elaboration_logs(self, limit: int = 20) -> list[dict]:
-        return await self.get_operations(tool="elaborate", limit=limit)
+    async def get_elaboration_logs(self, project: str | None = None, limit: int = 20) -> list[dict]:
+        return await self.get_operations(tool="elaborate", project=project, limit=limit)
 
     # ── Search ─────────────────────────────────────────────────────────────
 

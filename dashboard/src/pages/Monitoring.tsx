@@ -95,7 +95,7 @@ export default function Monitoring() {
   const { project } = useProject();
   const { data: adv, loading } = useAdvancedStats(project || undefined, true);
   const { data: diag } = useDiagnose(project || undefined, true);
-  const { data: elabData } = useElaborations(true);
+  const { data: elabData } = useElaborations(project || undefined, true);
   const [opsToolFilter, setOpsToolFilter] = useState<string>("");
   const { data: opsData } = useOperations(project || undefined, opsToolFilter || undefined, true);
 

@@ -83,7 +83,7 @@ function SetupBanner() {
 export default function Overview() {
   const { project } = useProject();
   const { data: adv, loading } = useAdvancedStats(project || undefined, true);
-  const { data: elabData } = useElaborations(true);
+  const { data: elabData } = useElaborations(project || undefined, true);
   const { data: sessionsData } = useSessions(project || undefined, true);
 
   if (loading || !adv) {

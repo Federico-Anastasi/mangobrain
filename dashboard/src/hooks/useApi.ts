@@ -135,8 +135,9 @@ export function useSessions(project?: string, poll = false) {
   return useFetch<{ items: Session[] }>(`/api/sessions${params}`, [project], poll ? POLL_30S : {});
 }
 
-export function useElaborations(poll = false) {
-  return useFetch<{ items: ElaborationLog[] }>("/api/elaborations", [], poll ? POLL_30S : {});
+export function useElaborations(project?: string, poll = false) {
+  const params = project ? `?project=${project}` : "";
+  return useFetch<{ items: ElaborationLog[] }>(`/api/elaborations${params}`, [project], poll ? POLL_30S : {});
 }
 
 export function useOperations(project?: string, tool?: string, poll = false) {

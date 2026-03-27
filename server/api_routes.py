@@ -703,8 +703,11 @@ def create_api_router(db: Database, retrieval=None) -> APIRouter:
     # ── Elaborations ──────────────────────────────────────────────────────
 
     @router.get("/elaborations")
-    async def list_elaborations(limit: int = Query(50, ge=1, le=200)):
-        logs = await db.get_elaboration_logs(limit=limit)
+    async def list_elaborations(
+        project: Optional[str] = Query(None),
+        limit: int = Query(50, ge=1, le=200),
+    ):
+        logs = await db.get_elaboration_logs(project=project, limit=limit)
         return {"items": logs}
 
     @router.get("/elaborations/{elab_id}")
