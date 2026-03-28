@@ -700,24 +700,6 @@ def create_api_router(db: Database, retrieval=None) -> APIRouter:
             "memories": [_memory_to_dict(m) for m in session_memories],
         }
 
-    # ── Elaborations ──────────────────────────────────────────────────────
-
-    @router.get("/elaborations")
-    async def list_elaborations(
-        project: Optional[str] = Query(None),
-        limit: int = Query(50, ge=1, le=200),
-    ):
-        logs = await db.get_elaboration_logs(project=project, limit=limit)
-        return {"items": logs}
-
-    @router.get("/elaborations/{elab_id}")
-    async def get_elaboration(elab_id: str):
-        logs = await db.get_elaboration_logs(limit=500)
-        log = next((l for l in logs if l.get("id") == elab_id), None)
-        if not log:
-            return JSONResponse(status_code=404, content={"error": "Elaboration not found"})
-        return log
-
     # ── Operations ─────────────────────────────────────────────────────────
 
     @router.get("/operations")

@@ -54,22 +54,6 @@ export interface Session {
   notes: string | null;
 }
 
-export interface ElaborationLog {
-  id: string;
-  project: string | null;
-  started_at: string;
-  completed_at: string | null;
-  seed_count: number | null;
-  working_set: number | null;
-  new_memories: number;
-  updated_memories: number;
-  deprecated_memories: number;
-  new_edges: number;
-  updated_edges: number;
-  summary: string | null;
-  status: string;
-}
-
 export interface OperationLog {
   id: string;
   tool: string;

@@ -180,6 +180,9 @@ class Database:
         # Migration: elaboration_log → operation_log
         await self._migrate_elaboration_log()
 
+        # Migration: pack elaborate legacy columns into params/result JSON
+        await self._migrate_elaborate_to_json()
+
     @property
     def conn(self) -> aiosqlite.Connection:
         assert self._conn is not None, "Database not connected"
@@ -402,28 +405,75 @@ class Database:
         except Exception:
             pass  # Already migrated or no old table
 
+    async def _migrate_elaborate_to_json(self) -> None:
+        """Pack elaborate legacy columns (seed_count, working_set, etc.) into params/result JSON.
+
+        Runs once per DB — idempotent (skips rows that already have params set).
+        After this, all tools use params/result JSON uniformly.
+        """
+        try:
+            cur = await self.conn.execute(
+                """SELECT id, seed_count, working_set, seed_ids,
+                          new_memories, updated_memories, deprecated_memories,
+                          new_edges, updated_edges, summary, project
+                   FROM operation_log
+                   WHERE tool = 'elaborate' AND params IS NULL AND seed_count IS NOT NULL"""
+            )
+            rows = await cur.fetchall()
+            if not rows:
+                return
+
+            for r in rows:
+                params_dict: dict[str, Any] = {}
+                if r["seed_count"] is not None:
+                    params_dict["seed_count"] = r["seed_count"]
+                if r["working_set"] is not None:
+                    params_dict["working_set"] = r["working_set"]
+                if r["seed_ids"]:
+                    params_dict["seed_ids"] = r["seed_ids"]  # already JSON string
+
+                result_dict: dict[str, Any] = {}
+                for key in ("new_memories", "updated_memories", "deprecated_memories",
+                            "new_edges", "updated_edges"):
+                    val = r[key]
+                    if val is not None:
+                        result_dict[key] = val
+                if r["summary"]:
+                    result_dict["summary"] = r["summary"]
+
+                await self.conn.execute(
+                    """UPDATE operation_log
+                       SET params = ?, result = ?,
+                           seed_count = NULL, working_set = NULL, seed_ids = NULL,
+                           new_memories = NULL, updated_memories = NULL,
+                           deprecated_memories = NULL, new_edges = NULL,
+                           updated_edges = NULL, summary = NULL
+                       WHERE id = ?""",
+                    (
+                        json.dumps(params_dict, ensure_ascii=False),
+                        json.dumps(result_dict, ensure_ascii=False),
+                        r["id"],
+                    ),
+                )
+            await self.conn.commit()
+            logger.info("Migrated %d elaborate entries to params/result JSON", len(rows))
+        except Exception as e:
+            logger.warning("elaborate→JSON migration: %s", e)
+
     async def insert_operation(self, op: dict[str, Any]) -> str:
         """Insert a generic operation log entry."""
         op_id = op.get("id", str(uuid.uuid4()))
         await self.conn.execute(
             """INSERT INTO operation_log
                (id, tool, project, params, result, status, duration_ms,
-                started_at, completed_at,
-                seed_count, working_set, seed_ids, new_memories,
-                updated_memories, deprecated_memories, new_edges,
-                updated_edges, summary)
-               VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+                started_at, completed_at)
+               VALUES (?,?,?,?,?,?,?,?,?)""",
             (
                 op_id, op.get("tool"), op.get("project"),
                 op.get("params"), op.get("result"),
                 op.get("status", "ok"), op.get("duration_ms"),
                 op.get("started_at", datetime.utcnow().isoformat()),
                 op.get("completed_at"),
-                op.get("seed_count"), op.get("working_set"),
-                op.get("seed_ids"),
-                op.get("new_memories", 0), op.get("updated_memories", 0),
-                op.get("deprecated_memories", 0), op.get("new_edges", 0),
-                op.get("updated_edges", 0), op.get("summary"),
             ),
         )
         await self.conn.commit()
@@ -459,14 +509,7 @@ class Database:
         )
         return [dict(r) for r in await cur.fetchall()]
 
-    # Backward-compatible aliases for elaboration
-    async def insert_elaboration_log(self, log: dict[str, Any]) -> str:
-        log["tool"] = "elaborate"
-        return await self.insert_operation(log)
-
-    async def update_elaboration_log(self, log_id: str, fields: dict[str, Any]) -> bool:
-        return await self.update_operation(log_id, fields)
-
+    # Backward-compatible alias (deprecated — use get_operations directly)
     async def get_elaboration_logs(self, project: str | None = None, limit: int = 20) -> list[dict]:
         return await self.get_operations(tool="elaborate", project=project, limit=limit)
 

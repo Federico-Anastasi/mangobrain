@@ -379,14 +379,18 @@ def register_tools(
         working_set = [m for m in all_memories if m.id in working_ids]
         ws_edges = [e for e in all_edges if e.from_id in working_ids and e.to_id in working_ids]
 
-        # Create elaboration log (store seed_ids for apply_elaboration filtering)
+        # Create elaboration log entry (same table as all operations)
         elab_id = str(uuid.uuid4())
-        await db.insert_elaboration_log({
+        await db.insert_operation({
             "id": elab_id,
+            "tool": "elaborate",
+            "project": project,
             "started_at": datetime.utcnow().isoformat(),
-            "seed_count": len(seeds),
-            "working_set": len(working_set),
-            "seed_ids": json.dumps(list(seed_ids)),
+            "params": json.dumps({
+                "seed_count": len(seeds),
+                "working_set": len(working_set),
+                "seed_ids": list(seed_ids),
+            }, ensure_ascii=False),
             "status": "running",
         })
 
@@ -519,12 +523,25 @@ def register_tools(
         report = ElaborationReport()
         now = datetime.utcnow()
 
-        # Retrieve seed_ids from elaboration log to filter elaboration marking
-        logs = await db.get_elaboration_logs(limit=100)
+        # Retrieve seed_ids from operation log to filter elaboration marking
+        logs = await db.get_operations(tool="elaborate", limit=100)
         seed_ids: set[str] = set()
         for log in logs:
-            if log.get("id") == elaboration_id and log.get("seed_ids"):
-                seed_ids = set(json.loads(log["seed_ids"]))
+            if log.get("id") == elaboration_id:
+                # New format: seed_ids in params JSON
+                params_raw = log.get("params")
+                if params_raw:
+                    try:
+                        params_data = json.loads(params_raw)
+                        if isinstance(params_data, dict) and "seed_ids" in params_data:
+                            raw_ids = params_data["seed_ids"]
+                            # seed_ids may be a JSON string or a list
+                            if isinstance(raw_ids, str):
+                                seed_ids = set(json.loads(raw_ids))
+                            else:
+                                seed_ids = set(raw_ids)
+                    except (json.JSONDecodeError, TypeError):
+                        pass
                 break
 
         # Update memories (content changes apply to all, elaboration marking only for seeds)
@@ -602,20 +619,22 @@ def register_tools(
                     "elaboration_count": await _get_elab_count(mid) + 1,
                 })
 
-        # Update elaboration log
+        # Update operation log with results
         report.summary = (
             f"Updated {report.updated_memories}, added {report.new_memories}, "
             f"deprecated {report.deprecated}, "
             f"edges: +{report.new_edges} ~{report.updated_edges} -{report.removed_edges}"
         )
-        await db.update_elaboration_log(elaboration_id, {
+        await db.update_operation(elaboration_id, {
             "completed_at": now.isoformat(),
-            "new_memories": report.new_memories,
-            "updated_memories": report.updated_memories,
-            "deprecated_memories": report.deprecated,
-            "new_edges": report.new_edges,
-            "updated_edges": report.updated_edges,
-            "summary": report.summary,
+            "result": json.dumps({
+                "new_memories": report.new_memories,
+                "updated_memories": report.updated_memories,
+                "deprecated_memories": report.deprecated,
+                "new_edges": report.new_edges,
+                "updated_edges": report.updated_edges,
+                "summary": report.summary,
+            }, ensure_ascii=False),
             "status": "completed",
         })
 

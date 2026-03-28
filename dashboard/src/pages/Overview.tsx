@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useProject } from "../context/ProjectContext.tsx";
-import { useAdvancedStats, useElaborations, useSessions, useSetupAll } from "../hooks/useApi.ts";
+import { useAdvancedStats, useOperations, useSessions, useSetupAll } from "../hooks/useApi.ts";
 import {
   PieChart, Pie, Cell, ResponsiveContainer, Tooltip,
   AreaChart, Area, XAxis, YAxis, BarChart, Bar,
@@ -83,7 +83,7 @@ function SetupBanner() {
 export default function Overview() {
   const { project } = useProject();
   const { data: adv, loading } = useAdvancedStats(project || undefined, true);
-  const { data: elabData } = useElaborations(project || undefined, true);
+  const { data: elabOps } = useOperations(project || undefined, "elaborate", true);
   const { data: sessionsData } = useSessions(project || undefined, true);
 
   if (loading || !adv) {
@@ -118,10 +118,14 @@ export default function Overview() {
     type: "extraction" as const, date: s.started_at, project: s.project,
     detail: `${s.memories_extracted} memories`, name: s.run_name,
   }));
-  const elabs = (elabData?.items ?? []).slice(0, 10).map(e => ({
-    type: "elaboration" as const, date: e.started_at, project: e.project ?? null,
-    detail: `+${e.new_memories} new, ${e.new_edges} edges`, name: e.status,
-  }));
+  const elabs = (elabOps?.items ?? []).slice(0, 10).map(op => {
+    const r = op.result ? (() => { try { return JSON.parse(op.result); } catch { return null; } })() : null;
+    return {
+      type: "elaboration" as const, date: op.started_at, project: op.project ?? null,
+      detail: r ? `+${r.new_memories ?? 0} new, ${r.new_edges ?? 0} edges` : op.status,
+      name: op.status,
+    };
+  });
   const recentActivity = [...sessions, ...elabs]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 8);

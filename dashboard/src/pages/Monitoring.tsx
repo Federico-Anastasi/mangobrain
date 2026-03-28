@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useProject } from "../context/ProjectContext.tsx";
-import { useAdvancedStats, useElaborations, useOperations, useDiagnose } from "../hooks/useApi.ts";
+import { useAdvancedStats, useOperations, useDiagnose } from "../hooks/useApi.ts";
 import type { Prescription, OperationLog } from "../types/index.ts";
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -95,9 +95,10 @@ export default function Monitoring() {
   const { project } = useProject();
   const { data: adv, loading } = useAdvancedStats(project || undefined, true);
   const { data: diag } = useDiagnose(project || undefined, true);
-  const { data: elabData } = useElaborations(project || undefined, true);
   const [opsToolFilter, setOpsToolFilter] = useState<string>("");
   const { data: opsData } = useOperations(project || undefined, opsToolFilter || undefined, true);
+  // Separate fetch for elaborate ops (for the chart, independent of tool filter)
+  const { data: elabOpsData } = useOperations(project || undefined, "elaborate", true);
 
   if (loading || !adv) {
     return (
@@ -150,15 +151,22 @@ export default function Monitoring() {
   // Growth timeline
   const growth = adv.growth_timeline ?? [];
 
-  // Elaboration history
-  const elabs = elabData?.items ?? [];
-  const elabChartData = [...elabs].reverse().slice(-20).map((e) => ({
-    date: e.started_at ? new Date(e.started_at).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" }) : "?",
-    new: e.new_memories,
-    updated: e.updated_memories,
-    deprecated: e.deprecated_memories,
-    edges: e.new_edges,
-  }));
+  // Elaboration history — from dedicated elaborate ops fetch
+  const elabOps = (elabOpsData?.items ?? []).filter(op => op.status === "completed");
+  const parseJson = (s: string | null): Record<string, unknown> | null => {
+    if (!s) return null;
+    try { return JSON.parse(s); } catch { return null; }
+  };
+  const elabChartData = [...elabOps].reverse().slice(-20).map((op) => {
+    const r = parseJson(op.result);
+    return {
+      date: op.started_at ? new Date(op.started_at).toLocaleDateString("it-IT", { day: "2-digit", month: "2-digit" }) : "?",
+      new: (r?.new_memories as number) ?? 0,
+      updated: (r?.updated_memories as number) ?? 0,
+      deprecated: (r?.deprecated_memories as number) ?? 0,
+      edges: (r?.new_edges as number) ?? 0,
+    };
+  });
 
   // Gini
   const gini = acc.gini_coefficient ?? 0;
@@ -421,52 +429,7 @@ export default function Monitoring() {
         )}
       </div>
 
-      {/* ─── Row 7: Elaboration Log ─── */}
-      <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
-        <h3 className="text-sm font-medium text-slate-400 mb-3">Elaboration Log</h3>
-        {elabs.length === 0 ? (
-          <p className="text-slate-500 text-sm">No elaborations recorded</p>
-        ) : (
-          <div className="overflow-auto max-h-64">
-            <table className="w-full text-sm">
-              <thead className="sticky top-0 bg-slate-800">
-                <tr className="text-slate-400 border-b border-slate-700">
-                  <th className="text-left py-2 px-3 font-medium">Date</th>
-                  <th className="text-right py-2 px-3 font-medium">Seeds</th>
-                  <th className="text-right py-2 px-3 font-medium">Working Set</th>
-                  <th className="text-right py-2 px-3 font-medium">New</th>
-                  <th className="text-right py-2 px-3 font-medium">Updated</th>
-                  <th className="text-right py-2 px-3 font-medium">Deprecated</th>
-                  <th className="text-right py-2 px-3 font-medium">Edges</th>
-                  <th className="text-left py-2 px-3 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {elabs.map((e) => (
-                  <tr key={e.id} className="border-b border-slate-800 hover:bg-slate-700/20">
-                    <td className="py-2 px-3 text-slate-300 text-xs">
-                      {e.started_at ? new Date(e.started_at).toLocaleString("it-IT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "—"}
-                    </td>
-                    <td className="py-2 px-3 text-right text-slate-300">{e.seed_count ?? "—"}</td>
-                    <td className="py-2 px-3 text-right text-slate-300">{e.working_set ?? "—"}</td>
-                    <td className="py-2 px-3 text-right text-green-400">{e.new_memories}</td>
-                    <td className="py-2 px-3 text-right text-blue-400">{e.updated_memories}</td>
-                    <td className="py-2 px-3 text-right text-red-400">{e.deprecated_memories}</td>
-                    <td className="py-2 px-3 text-right text-cyan-400">{e.new_edges}</td>
-                    <td className="py-2 px-3">
-                      <span className={`px-2 py-0.5 rounded text-xs ${e.status === "completed" ? "bg-green-500/20 text-green-300" : "bg-yellow-500/20 text-yellow-300"}`}>
-                        {e.status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* ─── Row 8: Operation Log ─── */}
+      {/* ─── Row 7: Operation Log (unified) ─── */}
       <OperationLogSection ops={opsData?.items ?? []} toolFilter={opsToolFilter} onToolFilterChange={setOpsToolFilter} />
     </div>
   );
@@ -484,16 +447,71 @@ const TOOL_COLORS: Record<string, string> = {
 
 const TOOL_OPTIONS = ["", "remember", "memorize", "elaborate", "update_memory", "sync_codebase", "decay", "reinforce"];
 
+/** Format params JSON into a readable short string per tool type. */
+function formatInput(tool: string, raw: string | null): string {
+  if (!raw) return "—";
+  try {
+    const p = JSON.parse(raw);
+    switch (tool) {
+      case "remember":
+        return `${p.mode ?? "deep"} "${p.query ?? ""}"${p.limit ? ` limit=${p.limit}` : ""}`;
+      case "memorize":
+        return `${p.count ?? "?"} memories${p.source ? `, src=${p.source}` : ""}`;
+      case "elaborate":
+        return `${p.seed_count ?? "?"} seeds, ${p.working_set ?? "?"} working set`;
+      case "update_memory":
+        return `${(p.memory_id ?? "").slice(0, 8)}.. [${(p.fields ?? []).join(", ")}]`;
+      case "sync_codebase":
+        return `${Array.isArray(p.changed_files) ? p.changed_files.length : "?"} files`;
+      case "decay":
+        return p.dry_run ? "dry run" : "apply";
+      case "reinforce":
+        return `${p.count ?? "?"} memories`;
+      default:
+        return Object.entries(p).map(([k, v]) => `${k}=${typeof v === "string" && v.length > 20 ? v.slice(0, 20) + "..." : JSON.stringify(v)}`).join(", ");
+    }
+  } catch { return raw.length > 40 ? raw.slice(0, 40) + "..." : raw; }
+}
+
+/** Format result JSON into a readable short string per tool type. */
+function formatOutput(tool: string, raw: string | null): string {
+  if (!raw) return "—";
+  try {
+    const r = JSON.parse(raw);
+    if (r.error) return `err: ${r.error}`;
+    switch (tool) {
+      case "remember":
+        return `${r.count ?? "?"} results${r.total_tokens ? `, ${(r.total_tokens / 1000).toFixed(1)}k tok` : ""}`;
+      case "memorize":
+        return `${r.created ?? 0} created, ${r.edges_created ?? 0} edges${r.duplicates_skipped ? `, ${r.duplicates_skipped} dups` : ""}`;
+      case "elaborate":
+        return `+${r.new_memories ?? 0} new, ${r.updated_memories ?? 0} upd, ${r.deprecated_memories ?? 0} depr, ${r.new_edges ?? 0} edges`;
+      case "update_memory":
+        return `updated [${(r.fields_changed ?? []).join(", ")}]`;
+      case "sync_codebase":
+        return `${r.stale ?? 0} stale, ${r.orphans ?? 0} orphans, ${r.new_files ?? 0} new`;
+      case "decay":
+        return `${r.affected ?? 0} affected`;
+      case "reinforce":
+        return `${r.reinforced ?? 0} reinforced`;
+      default:
+        return Object.entries(r).map(([k, v]) => `${k}: ${String(v)}`).join(", ");
+    }
+  } catch { return raw.length > 40 ? raw.slice(0, 40) + "..." : raw; }
+}
+
+const STATUS_CLASSES: Record<string, string> = {
+  ok: "bg-green-500/20 text-green-300",
+  completed: "bg-green-500/20 text-green-300",
+  running: "bg-amber-500/20 text-amber-300",
+  error: "bg-red-500/20 text-red-300",
+};
+
 function OperationLogSection({ ops, toolFilter, onToolFilterChange }: {
   ops: OperationLog[];
   toolFilter: string;
   onToolFilterChange: (v: string) => void;
 }) {
-  const parseJson = (s: string | null): Record<string, unknown> | null => {
-    if (!s) return null;
-    try { return JSON.parse(s); } catch { return null; }
-  };
-
   return (
     <div className="bg-slate-800/50 border border-slate-700/50 rounded-xl p-4">
       <div className="flex items-center justify-between mb-3">
@@ -516,23 +534,22 @@ function OperationLogSection({ ops, toolFilter, onToolFilterChange }: {
       {ops.length === 0 ? (
         <p className="text-slate-500 text-sm">No operations logged yet</p>
       ) : (
-        <div className="overflow-auto max-h-80">
+        <div className="overflow-auto max-h-96">
           <table className="w-full text-sm">
             <thead className="sticky top-0 bg-slate-800">
               <tr className="text-slate-400 border-b border-slate-700">
                 <th className="text-left py-2 px-3 font-medium">Time</th>
                 <th className="text-left py-2 px-3 font-medium">Tool</th>
-                <th className="text-left py-2 px-3 font-medium">Params</th>
-                <th className="text-left py-2 px-3 font-medium">Result</th>
+                <th className="text-left py-2 px-3 font-medium">Input</th>
+                <th className="text-left py-2 px-3 font-medium">Output</th>
                 <th className="text-right py-2 px-3 font-medium">Duration</th>
                 <th className="text-left py-2 px-3 font-medium">Status</th>
               </tr>
             </thead>
             <tbody>
               {ops.map((op) => {
-                const params = parseJson(op.params);
-                const result = parseJson(op.result);
                 const toolClass = TOOL_COLORS[op.tool] ?? "bg-slate-500/20 text-slate-300";
+                const statusClass = STATUS_CLASSES[op.status] ?? "bg-slate-500/20 text-slate-300";
                 return (
                   <tr key={op.id} className="border-b border-slate-800 hover:bg-slate-700/20">
                     <td className="py-2 px-3 text-slate-300 text-xs whitespace-nowrap">
@@ -543,29 +560,17 @@ function OperationLogSection({ ops, toolFilter, onToolFilterChange }: {
                     <td className="py-2 px-3">
                       <span className={`px-2 py-0.5 rounded text-xs ${toolClass}`}>{op.tool}</span>
                     </td>
-                    <td className="py-2 px-3 text-xs text-slate-400 max-w-48 truncate" title={op.params ?? ""}>
-                      {params ? Object.entries(params).map(([k, v]) => (
-                        <span key={k} className="mr-2">
-                          <span className="text-slate-500">{k}:</span>{" "}
-                          <span className="text-slate-300">{typeof v === "string" ? (v.length > 30 ? v.slice(0, 30) + "..." : v) : JSON.stringify(v)}</span>
-                        </span>
-                      )) : "—"}
+                    <td className="py-2 px-3 text-xs text-slate-300 max-w-56 truncate" title={op.params ?? ""}>
+                      {formatInput(op.tool, op.params)}
                     </td>
-                    <td className="py-2 px-3 text-xs text-slate-400 max-w-40 truncate" title={op.result ?? ""}>
-                      {result ? Object.entries(result).map(([k, v]) => (
-                        <span key={k} className="mr-2">
-                          <span className="text-slate-500">{k}:</span>{" "}
-                          <span className="text-slate-300">{String(v)}</span>
-                        </span>
-                      )) : "—"}
+                    <td className="py-2 px-3 text-xs text-slate-300 max-w-56 truncate" title={op.result ?? ""}>
+                      {formatOutput(op.tool, op.result)}
                     </td>
                     <td className="py-2 px-3 text-right text-xs text-slate-400 font-mono">
                       {op.duration_ms != null ? (op.duration_ms > 1000 ? `${(op.duration_ms / 1000).toFixed(1)}s` : `${op.duration_ms}ms`) : "—"}
                     </td>
                     <td className="py-2 px-3">
-                      <span className={`px-2 py-0.5 rounded text-xs ${op.status === "ok" ? "bg-green-500/20 text-green-300" : "bg-red-500/20 text-red-300"}`}>
-                        {op.status}
-                      </span>
+                      <span className={`px-2 py-0.5 rounded text-xs ${statusClass}`}>{op.status}</span>
                     </td>
                   </tr>
                 );
