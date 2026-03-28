@@ -1,4 +1,4 @@
-import { NavLink } from "react-router-dom";
+import { NavLink, useSearchParams } from "react-router-dom";
 import {
   LayoutDashboard,
   Database,
@@ -21,6 +21,10 @@ const links = [
 ];
 
 export default function Sidebar() {
+  const [searchParams] = useSearchParams();
+  const qs = searchParams.toString();
+  const suffix = qs ? `?${qs}` : "";
+
   return (
     <aside className="w-56 shrink-0 bg-slate-950 border-r border-slate-800 flex flex-col">
       <div className="px-4 h-12 flex items-center gap-2 border-b border-slate-800">
@@ -34,7 +38,7 @@ export default function Sidebar() {
         {links.map((l) => (
           <NavLink
             key={l.to}
-            to={l.to}
+            to={`${l.to}${suffix}`}
             end={l.to === "/"}
             className={({ isActive }) =>
               `flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${

@@ -226,7 +226,7 @@ function StepCard({
 }
 
 export default function Setup() {
-  const { project: globalProject, setProject } = useProject();
+  const { project: globalProject } = useProject();
   const { data: projects, loading: loadingProjects } = useSetupAll(true);
 
   // Use global project if set, otherwise auto-select first project
@@ -275,19 +275,6 @@ export default function Setup() {
         <p className="text-sm text-slate-400">
           Track initialization progress for your projects
         </p>
-        {projects.length > 1 && (
-          <select
-            value={activeProject || ""}
-            onChange={(e) => setProject(e.target.value)}
-            className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-white"
-          >
-            {projects.map((p) => (
-              <option key={p.project} value={p.project}>
-                {p.project} {p.is_ready ? "(Ready)" : `(${p.progress_pct}%)`}
-              </option>
-            ))}
-          </select>
-        )}
       </div>
 
       {/* Progress overview */}

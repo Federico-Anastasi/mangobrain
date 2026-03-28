@@ -56,6 +56,7 @@ export interface Session {
 
 export interface ElaborationLog {
   id: string;
+  project: string | null;
   started_at: string;
   completed_at: string | null;
   seed_count: number | null;

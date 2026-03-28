@@ -119,7 +119,7 @@ export default function Overview() {
     detail: `${s.memories_extracted} memories`, name: s.run_name,
   }));
   const elabs = (elabData?.items ?? []).slice(0, 10).map(e => ({
-    type: "elaboration" as const, date: e.started_at, project: null,
+    type: "elaboration" as const, date: e.started_at, project: e.project ?? null,
     detail: `+${e.new_memories} new, ${e.new_edges} edges`, name: e.status,
   }));
   const recentActivity = [...sessions, ...elabs]

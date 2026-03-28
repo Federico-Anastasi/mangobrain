@@ -23,8 +23,8 @@ const EDGE_TYPE_COLORS: Record<string, { color: string; label: string }> = {
 };
 
 export default function Graph() {
-  const [searchParams] = useSearchParams();
-  const focusId = searchParams.get("focus");
+  const [graphParams] = useSearchParams();
+  const focusId = graphParams.get("focus");
 
   const { project } = useProject();
   const [minWeight, setMinWeight] = useState(0);
