@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
+import logging
 import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Optional
+
+logger = logging.getLogger(__name__)
 
 import aiosqlite
 
